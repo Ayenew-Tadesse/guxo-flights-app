@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "guxo-flights-app",
-    "slug": "guxo-flights-app",
+    "name": "Guxo Flights",
+    "slug": "guxo-flights",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "guxoflightsapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "guxoflights",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#EAF2FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#1B2CC1",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
