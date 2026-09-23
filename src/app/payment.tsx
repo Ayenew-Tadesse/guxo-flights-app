@@ -2,8 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Button, Card, Choice, Row } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Card, Choice, Row, Screen, Text } from '@/design-system';
 import { Spacing } from '@/constants/theme';
 import { FARES, findFlight, formatBirr, PAYMENT_METHODS } from '@/data/flights';
 
@@ -17,7 +16,7 @@ export default function Payment() {
   if (!flight) {
     return (
       <Screen edges={[]}>
-        <AppText>That flight is no longer available.</AppText>
+        <Text>That flight is no longer available.</Text>
       </Screen>
     );
   }
@@ -40,13 +39,13 @@ export default function Payment() {
         <Row label="Seat" value={seat} />
         <Row label="Total" value={formatBirr(total)} />
       </Card>
-      <AppText variant="label">Pay with</AppText>
+      <Text variant="label">Pay with</Text>
       <View style={styles.methods}>
         {PAYMENT_METHODS.map((m) => (
           <Choice key={m.id} label={m.name} selected={m.id === method} onPress={() => setMethod(m.id)} />
         ))}
       </View>
-      <AppText variant="caption">Demo only — no real payment is taken.</AppText>
+      <Text variant="caption">Demo only — no real payment is taken.</Text>
       <Button label={`Pay ${formatBirr(total)}`} onPress={pay} />
     </Screen>
   );

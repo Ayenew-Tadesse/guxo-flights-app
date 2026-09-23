@@ -23,6 +23,16 @@ src/app/
 
 Flight data is mocked in `src/data/flights.ts` until the live API work lands.
 
+## Design system
+
+`src/design-system/` is the shared kit for the Guxo app family (Guxo Flights, Guxo, and later Gexi):
+
+- **Tokens** (`tokens.ts`) — brand colours for each app, plus one shared scale for spacing, radius and type
+- **Brand theming** (`theme.tsx`) — wrap an app in `<BrandProvider brand="guxoFlights">` (or `"guxo"`) and every component re-skins
+- **Components** (`components.tsx`) — `Text`, `Button`, `IconButton`, `TextField`, `Choice`, `Card`, `Row`, `Badge`, `Divider`, `Screen`
+
+Import from `@/design-system`. Open **Profile → Design system** in the app to see every token and component in each brand.
+
 ## Run it
 
 ```bash

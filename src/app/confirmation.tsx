@@ -2,8 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Button, Card, Row } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Card, Row, Screen, Text } from '@/design-system';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { cityOf, FARES, findFlight } from '@/data/flights';
 
@@ -20,8 +19,8 @@ export default function Confirmation() {
         <View style={styles.ok}>
           <MaterialIcons name="check" size={26} color={Colors.onPrimary} />
         </View>
-        <AppText style={styles.bannerTitle}>{"You're booked!"}</AppText>
-        <AppText style={styles.bannerSub}>Your e-ticket is in My Trips.</AppText>
+        <Text style={styles.bannerTitle}>{"You're booked!"}</Text>
+        <Text style={styles.bannerSub}>Your e-ticket is in My Trips.</Text>
       </View>
       {flight ? (
         <Card>
@@ -33,8 +32,8 @@ export default function Confirmation() {
         </Card>
       ) : null}
       <Card style={styles.pnrCard}>
-        <AppText variant="label">Booking reference</AppText>
-        <AppText style={styles.pnr}>{pnr}</AppText>
+        <Text variant="label">Booking reference</Text>
+        <Text style={styles.pnr}>{pnr}</Text>
       </Card>
       <Button label="Go to My Trips" onPress={() => router.replace('/trips')} />
       <Button label="Back to Home" kind="ghost" onPress={() => router.replace('/home')} />

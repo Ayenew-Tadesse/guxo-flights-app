@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Card } from '@/components/ui/primitives';
+import { Card, Text } from '@/design-system';
 import { Colors, Spacing } from '@/constants/theme';
 import { cityOf } from '@/data/flights';
 
@@ -12,19 +12,19 @@ export function TripCard({ trip, children }: { trip: Trip; children?: ReactNode 
   return (
     <Card>
       <View style={styles.row}>
-        <AppText variant="label">{trip.status}</AppText>
-        <AppText variant="label">PNR {trip.pnr}</AppText>
+        <Text variant="label">{trip.status}</Text>
+        <Text variant="label">PNR {trip.pnr}</Text>
       </View>
       <View style={styles.row}>
-        <AppText style={styles.code}>{trip.from}</AppText>
-        <AppText variant="caption">✈</AppText>
-        <AppText style={styles.code}>{trip.to}</AppText>
+        <Text style={styles.code}>{trip.from}</Text>
+        <Text variant="caption">✈</Text>
+        <Text style={styles.code}>{trip.to}</Text>
       </View>
       <View style={styles.row}>
-        <AppText variant="caption">{cityOf(trip.from)}</AppText>
-        <AppText variant="caption">{cityOf(trip.to)}</AppText>
+        <Text variant="caption">{cityOf(trip.from)}</Text>
+        <Text variant="caption">{cityOf(trip.to)}</Text>
       </View>
-      <AppText variant="caption">{trip.date} · {trip.time}</AppText>
+      <Text variant="caption">{trip.date} · {trip.time}</Text>
       {children}
     </Card>
   );

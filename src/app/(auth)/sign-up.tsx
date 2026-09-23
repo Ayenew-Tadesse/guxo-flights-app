@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Brand } from '@/components/brand';
-import { AppText, Button, Field } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Screen, Text, TextField } from '@/design-system';
 import { Colors, Spacing } from '@/constants/theme';
 
 export default function SignUp() {
@@ -27,24 +26,24 @@ export default function SignUp() {
     <Screen edges={['top', 'bottom']} contentStyle={styles.column}>
       <Brand />
       <View style={styles.head}>
-        <AppText variant="title" style={styles.center}>Create your account</AppText>
-        <AppText variant="caption" style={styles.center}>
+        <Text variant="display" style={styles.center}>Create your account</Text>
+        <Text variant="caption" style={styles.center}>
           Sign up to search, book, and manage your Ethiopian domestic flights.
-        </AppText>
+        </Text>
       </View>
       <View style={styles.row}>
-        <View style={styles.flex}><Field label="First name" value={first} onChangeText={setFirst} placeholder="First name" /></View>
-        <View style={styles.flex}><Field label="Last name" value={last} onChangeText={setLast} placeholder="Last name" /></View>
+        <View style={styles.flex}><TextField label="First name" value={first} onChangeText={setFirst} placeholder="First name" /></View>
+        <View style={styles.flex}><TextField label="Last name" value={last} onChangeText={setLast} placeholder="Last name" /></View>
       </View>
-      <Field label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-      <Field label="Password" value={password} onChangeText={setPassword} placeholder="Create a password" secureTextEntry />
-      {error ? <AppText style={styles.error}>{error}</AppText> : null}
+      <TextField label="Email address" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
+      <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Create a password" secureTextEntry />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Sign up" onPress={submit} />
       <Button label="Continue as guest" kind="ghost" onPress={() => router.replace('/home')} />
       <Pressable onPress={() => router.replace('/log-in')} accessibilityRole="link">
-        <AppText variant="caption" style={styles.center}>
-          Already have an account? <AppText style={styles.link}>Log in</AppText>
-        </AppText>
+        <Text variant="caption" style={styles.center}>
+          Already have an account? <Text style={styles.link}>Log in</Text>
+        </Text>
       </Pressable>
     </Screen>
   );

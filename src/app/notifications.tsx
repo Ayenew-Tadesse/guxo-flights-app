@@ -1,7 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppText, Card } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Card, Screen, Text } from '@/design-system';
 import { Spacing } from '@/constants/theme';
 import { SAMPLE_NOTIFICATIONS } from '@/data/flights';
 
@@ -11,10 +10,10 @@ export default function Notifications() {
       {SAMPLE_NOTIFICATIONS.map((n) => (
         <Card key={n.id} style={styles.card}>
           <View style={styles.text}>
-            <AppText style={styles.title}>{n.title}</AppText>
-            <AppText variant="caption">{n.body}</AppText>
+            <Text style={styles.title}>{n.title}</Text>
+            <Text variant="caption">{n.body}</Text>
           </View>
-          <AppText variant="caption">{n.ago}</AppText>
+          <Text variant="caption">{n.ago}</Text>
         </Card>
       ))}
     </Screen>

@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Brand } from '@/components/brand';
-import { AppText, Button, Field } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Screen, Text, TextField } from '@/design-system';
 import { Colors, Spacing } from '@/constants/theme';
 
 export default function LogIn() {
@@ -23,18 +22,18 @@ export default function LogIn() {
     <Screen edges={['top', 'bottom']} contentStyle={styles.column}>
       <Brand />
       <View style={styles.head}>
-        <AppText variant="title" style={styles.center}>Welcome back</AppText>
-        <AppText variant="caption" style={styles.center}>Log in to continue to your account.</AppText>
+        <Text variant="display" style={styles.center}>Welcome back</Text>
+        <Text variant="caption" style={styles.center}>Log in to continue to your account.</Text>
       </View>
-      <Field label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
-      <Field label="Password" value={password} onChangeText={setPassword} placeholder="Your password" secureTextEntry />
-      {error ? <AppText style={styles.error}>{error}</AppText> : null}
+      <TextField label="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" />
+      <TextField label="Password" value={password} onChangeText={setPassword} placeholder="Your password" secureTextEntry />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Log in" onPress={submit} />
       <Button label="Continue as guest" kind="ghost" onPress={() => router.replace('/home')} />
       <Pressable onPress={() => router.replace('/sign-up')} accessibilityRole="link">
-        <AppText variant="caption" style={styles.center}>
-          New here? <AppText style={styles.link}>Sign up</AppText>
-        </AppText>
+        <Text variant="caption" style={styles.center}>
+          New here? <Text style={styles.link}>Sign up</Text>
+        </Text>
       </Pressable>
     </Screen>
   );

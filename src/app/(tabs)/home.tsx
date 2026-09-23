@@ -4,8 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Brand } from '@/components/brand';
 import { SearchForm } from '@/components/search-form';
-import { AppText } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Screen, Text } from '@/design-system';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 
 export default function Home() {
@@ -27,8 +26,8 @@ export default function Home() {
         </View>
       </View>
       <View style={styles.hero}>
-        <AppText style={styles.heroHi}>Welcome back</AppText>
-        <AppText style={styles.heroTitle}>Where are you flying next?</AppText>
+        <Text style={styles.heroHi}>Welcome back</Text>
+        <Text style={styles.heroTitle}>Where are you flying next?</Text>
       </View>
       <SearchForm />
     </Screen>

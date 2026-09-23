@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { AppText, Button, Card, Choice } from '@/components/ui/primitives';
+import { Button, Card, Choice, Text } from '@/design-system';
 import { Spacing } from '@/constants/theme';
 import { AIRPORTS } from '@/data/flights';
 
@@ -28,10 +28,10 @@ export function SearchForm() {
       <AirportPicker label="From" value={from} onPick={(c) => pick('from', c)} />
       <AirportPicker label="To" value={to} onPick={(c) => pick('to', c)} />
       <View style={styles.pax}>
-        <AppText variant="label">Passengers</AppText>
+        <Text variant="label">Passengers</Text>
         <View style={styles.paxRow}>
           <Choice label="−" selected={false} onPress={() => setPassengers((p) => Math.max(1, p - 1))} />
-          <AppText variant="heading" accessibilityLiveRegion="polite">{passengers}</AppText>
+          <Text variant="heading" accessibilityLiveRegion="polite">{passengers}</Text>
           <Choice label="+" selected={false} onPress={() => setPassengers((p) => Math.min(9, p + 1))} />
         </View>
       </View>
@@ -46,7 +46,7 @@ export function SearchForm() {
 function AirportPicker({ label, value, onPick }: { label: string; value: string; onPick: (code: string) => void }) {
   return (
     <View style={styles.picker}>
-      <AppText variant="label">{label}</AppText>
+      <Text variant="label">{label}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {AIRPORTS.map((a) => (
           <Choice key={a.code} label={a.code} detail={a.city} selected={a.code === value} onPress={() => onPick(a.code)} />

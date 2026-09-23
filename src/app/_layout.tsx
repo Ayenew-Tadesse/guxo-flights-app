@@ -2,6 +2,7 @@ import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { Colors } from '@/constants/theme';
+import { BrandProvider } from '@/design-system';
 
 // The navigation theme paints screen backgrounds, so match the brand
 // background to avoid a white flash between screens.
@@ -19,6 +20,7 @@ const navTheme = {
 
 export default function RootLayout() {
   return (
+    <BrandProvider brand="guxoFlights">
     <ThemeProvider value={navTheme}>
       <StatusBar style="dark" />
       <Stack
@@ -38,7 +40,9 @@ export default function RootLayout() {
         <Stack.Screen name="confirmation" options={{ title: 'Booked', headerBackVisible: false, gestureEnabled: false }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+        <Stack.Screen name="design-system" options={{ title: 'Design system' }} />
       </Stack>
     </ThemeProvider>
+    </BrandProvider>
   );
 }

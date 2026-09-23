@@ -2,8 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, Card } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Card, Screen, Text } from '@/design-system';
 import { Colors, Spacing } from '@/constants/theme';
 
 const ROWS = ['Saved passengers', 'Payment methods', 'Notification preferences', 'Help & support'];
@@ -14,20 +13,24 @@ export default function Profile() {
     <Screen edges={['bottom']}>
       <View style={styles.head}>
         <View style={styles.avatar}>
-          <AppText style={styles.initials}>G</AppText>
+          <Text style={styles.initials}>G</Text>
         </View>
-        <AppText variant="heading">Guest</AppText>
-        <AppText variant="caption">Sign in to keep your trips and miles in sync.</AppText>
+        <Text variant="heading">Guest</Text>
+        <Text variant="caption">Sign in to keep your trips and miles in sync.</Text>
       </View>
       <Card style={styles.list}>
         {ROWS.map((r) => (
           <View key={r} style={styles.row}>
-            <AppText>{r}</AppText>
+            <Text>{r}</Text>
             <MaterialIcons name="chevron-right" size={20} color={Colors.inkFaint} />
           </View>
         ))}
+        <Pressable accessibilityRole="button" onPress={() => router.push('/design-system')} style={styles.row}>
+          <Text>Design system</Text>
+          <MaterialIcons name="chevron-right" size={20} color={Colors.inkFaint} />
+        </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.replace('/log-in')} style={styles.row}>
-          <AppText style={{ color: Colors.bad, fontWeight: '600' }}>Log out</AppText>
+          <Text style={{ color: Colors.bad, fontWeight: '600' }}>Log out</Text>
           <MaterialIcons name="chevron-right" size={20} color={Colors.inkFaint} />
         </Pressable>
       </Card>

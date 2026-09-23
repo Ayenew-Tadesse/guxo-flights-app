@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, Card } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Card, Screen, Text } from '@/design-system';
 import { Colors, Spacing } from '@/constants/theme';
 import { cityOf, flightsFor, formatBirr } from '@/data/flights';
 
@@ -13,8 +12,8 @@ export default function Results() {
 
   return (
     <Screen edges={[]}>
-      <AppText variant="heading">{cityOf(from)} → {cityOf(to)}</AppText>
-      <AppText variant="caption">{flights.length} flights · {passengers} passenger{passengers === '1' ? '' : 's'}</AppText>
+      <Text variant="heading">{cityOf(from)} → {cityOf(to)}</Text>
+      <Text variant="caption">{flights.length} flights · {passengers} passenger{passengers === '1' ? '' : 's'}</Text>
       {flights.map((f) => (
         <Pressable
           key={f.id}
@@ -23,17 +22,17 @@ export default function Results() {
           style={({ pressed }) => pressed && { opacity: 0.85 }}>
           <Card>
             <View style={styles.route}>
-              <AppText style={styles.time}>{f.depart}</AppText>
+              <Text style={styles.time}>{f.depart}</Text>
               <View style={styles.mid}>
-                <AppText variant="caption">{f.duration}</AppText>
+                <Text variant="caption">{f.duration}</Text>
                 <View style={styles.line} />
-                <AppText variant="caption">Nonstop</AppText>
+                <Text variant="caption">Nonstop</Text>
               </View>
-              <AppText style={styles.time}>{f.arrive}</AppText>
+              <Text style={styles.time}>{f.arrive}</Text>
             </View>
             <View style={styles.bottom}>
-              <AppText variant="caption">{f.from} → {f.to}</AppText>
-              <AppText style={styles.price}>{formatBirr(f.price)}</AppText>
+              <Text variant="caption">{f.from} → {f.to}</Text>
+              <Text style={styles.price}>{formatBirr(f.price)}</Text>
             </View>
           </Card>
         </Pressable>

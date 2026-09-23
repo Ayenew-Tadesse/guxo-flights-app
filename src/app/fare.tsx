@@ -2,8 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, Button, Card, Choice, Row } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Card, Choice, Row, Screen, Text } from '@/design-system';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { FARES, findFlight, formatBirr, type FareId } from '@/data/flights';
 
@@ -22,7 +21,7 @@ export default function Fare() {
   if (!flight) {
     return (
       <Screen edges={[]}>
-        <AppText>That flight is no longer available.</AppText>
+        <Text>That flight is no longer available.</Text>
       </Screen>
     );
   }
@@ -37,7 +36,7 @@ export default function Fare() {
         <Row label="Departs" value={`${flight.depart} · ${flight.duration}`} />
       </Card>
 
-      <AppText variant="label">Fare</AppText>
+      <Text variant="label">Fare</Text>
       <View style={styles.fares}>
         {FARES.map((f) => (
           <Choice
@@ -50,11 +49,11 @@ export default function Fare() {
         ))}
       </View>
 
-      <AppText variant="label">Seat</AppText>
+      <Text variant="label">Seat</Text>
       <Card style={styles.seatCard}>
         {Array.from({ length: ROWS }, (_, r) => (
           <View key={r} style={styles.seatRow}>
-            <AppText variant="caption" style={styles.rowNo}>{r + 1}</AppText>
+            <Text variant="caption" style={styles.rowNo}>{r + 1}</Text>
             {COLS.map((c, ci) => {
               const id = `${r + 1}${c}`;
               const taken = TAKEN.has(id);
@@ -68,7 +67,7 @@ export default function Fare() {
                     disabled={taken}
                     onPress={() => setSeat(id)}
                     style={[styles.seat, taken && styles.seatTaken, picked && styles.seatPicked]}>
-                    <AppText style={[styles.seatLabel, picked && { color: Colors.onPrimary }]}>{taken ? '' : c}</AppText>
+                    <Text style={[styles.seatLabel, picked && { color: Colors.onPrimary }]}>{taken ? '' : c}</Text>
                   </Pressable>
                 </View>
               );

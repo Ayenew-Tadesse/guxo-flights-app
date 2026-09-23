@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
 import { TripCard } from '@/components/trip-card';
-import { AppText, Button } from '@/components/ui/primitives';
-import { Screen } from '@/components/ui/screen';
+import { Button, Screen, Text } from '@/design-system';
 import { SAMPLE_TRIPS } from '@/data/flights';
 
 export default function CheckIn() {
@@ -10,8 +9,8 @@ export default function CheckIn() {
 
   return (
     <Screen>
-      <AppText variant="title">Check-in</AppText>
-      <AppText variant="caption">Online check-in opens 24 hours before departure.</AppText>
+      <Text variant="display">Check-in</Text>
+      <Text variant="caption">Online check-in opens 24 hours before departure.</Text>
       {SAMPLE_TRIPS.map((t) => (
         <TripCard key={t.pnr} trip={{ ...t, status: checkedIn[t.pnr] ? 'Checked in' : t.status }}>
           <Button
