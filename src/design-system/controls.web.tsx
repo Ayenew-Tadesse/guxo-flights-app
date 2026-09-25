@@ -1,14 +1,13 @@
-import { useId, useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { View } from 'react-native';
 
-import { Icon, type IconName } from './icons';
 import { useColors, useLayout } from './theme';
 import { fonts, radius } from './tokens';
 
 /*
  * Web versions of the form controls. They render the browser's own
  * controls, exactly like the web prototypes do (date picker, <select>,
- * range slider, <datalist> suggestions).
+ * range slider).
  */
 
 function useDomInputStyle(hasIcon: boolean, focused: boolean): CSSProperties {
@@ -132,53 +131,5 @@ export function RangeInput({
       onChange={(e) => onChange(Number(e.target.value))}
       style={{ width: '100%', accentColor: c.primary, margin: 0 }}
     />
-  );
-}
-
-/** Text input with suggestions (a <datalist> on web). */
-export function ComboInput({
-  value,
-  onChangeText,
-  suggestions,
-  placeholder,
-  icon,
-  label,
-}: {
-  value: string;
-  onChangeText: (v: string) => void;
-  suggestions: string[];
-  placeholder?: string;
-  icon?: IconName;
-  label: string;
-}) {
-  const c = useColors();
-  const listId = useId();
-  const [focused, setFocused] = useState(false);
-  const style = useDomInputStyle(!!icon, focused);
-  return (
-    <View style={{ position: 'relative', justifyContent: 'center' }}>
-      <input
-        type="text"
-        aria-label={label}
-        list={listId}
-        autoComplete="off"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChangeText(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={style}
-      />
-      <datalist id={listId}>
-        {suggestions.map((s) => (
-          <option key={s} value={s} />
-        ))}
-      </datalist>
-      {icon ? (
-        <View pointerEvents="none" style={{ position: 'absolute', left: 12 }}>
-          <Icon name={icon} size={16} color={c.primary} />
-        </View>
-      ) : null}
-    </View>
   );
 }

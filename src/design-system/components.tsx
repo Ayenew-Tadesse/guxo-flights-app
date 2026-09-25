@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, type Ref } from 'react';
 import {
   Animated,
   Easing,
@@ -318,7 +318,7 @@ export function useInputStyle(hasIcon: boolean, focused: boolean) {
   } as TextStyle;
 }
 
-export function Input({ icon, style, ...props }: TextInputProps & { icon?: IconName }) {
+export function Input({ icon, style, inputRef, ...props }: TextInputProps & { icon?: IconName; inputRef?: Ref<TextInput> }) {
   const c = useColors();
   const [focused, setFocused] = useState(false);
   // The prototypes indent every text input's text as if it had an icon.
@@ -326,6 +326,7 @@ export function Input({ icon, style, ...props }: TextInputProps & { icon?: IconN
   return (
     <View style={{ position: 'relative', justifyContent: 'center' }}>
       <TextInput
+        ref={inputRef}
         placeholderTextColor={c.inkFaint}
         {...props}
         onFocus={(e) => {

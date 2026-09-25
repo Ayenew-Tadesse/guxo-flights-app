@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, StyleSheet, View, type StyleProp, type TextInput, type ViewStyle } from 'react-native';
 
-import { Button, ComboInput, DateInput, Field, FormError, Icon, T, shadow, useColors, useLayout } from '@/design-system';
-import { AIRPORTS, addDaysIso, airport, findAirportByInput, formatAirport, todayIso } from '@/data/flights';
+import { Button, DateInput, Field, FormError, Icon, T, shadow, useColors, useLayout } from '@/design-system';
+import { addDaysIso, airport, findAirportByInput, formatAirport, todayIso } from '@/data/flights';
 import { goTo } from '@/state/nav';
 import { getState, startSearch } from '@/state/store';
+
+import { AirportField } from './airport-field';
 
 /** The prototype's search card: one way / round trip, From/To with swap, dates, passengers. */
 export function SearchForm({ compact, style }: { compact?: boolean; style?: StyleProp<ViewStyle> }) {
@@ -22,8 +24,7 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
 
   const fromA = findAirportByInput(from);
   const toA = findAirportByInput(to);
-  const originOptions = AIRPORTS.filter((a) => a.code !== toA?.code).map(formatAirport);
-  const destOptions = AIRPORTS.filter((a) => a.code !== fromA?.code).map(formatAirport);
+  const toRef = useRef<TextInput>(null);
 
   function chooseTrip(t: 'one' | 'round') {
     setTripType(t);
@@ -95,13 +96,11 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
         })}
       </View>
 
-      <View style={{ gap: 12, position: 'relative' }}>
-        <Field label="From">
-          <ComboInput label="From" icon="pin" value={from} onChangeText={setFrom} suggestions={originOptions} placeholder="City or airport code" />
-        </Field>
-        <Field label="To">
-          <ComboInput label="To" icon="pin" value={to} onChangeText={setTo} suggestions={destOptions} placeholder="City or airport code" />
-        </Field>
+      {/* Above the rows below it, so an open airport list covers them. */}
+      <View style={{ gap: 12, position: 'relative', zIndex: 10 }}>
+        {/* Picking From moves straight on to To. */}
+        <AirportField label="From" value={from} onChange={setFrom} exclude={toA?.code} onPicked={() => toRef.current?.focus()} />
+        <AirportField label="To" value={to} onChange={setTo} exclude={fromA?.code} inputRef={toRef} onPicked={() => toRef.current?.blur()} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Swap departure and destination"

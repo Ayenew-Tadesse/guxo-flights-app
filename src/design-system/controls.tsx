@@ -3,8 +3,7 @@ import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
 
-import { Input, T, useInputStyle } from './components';
-import { type IconName } from './icons';
+import { T, useInputStyle } from './components';
 import { useColors, useLayout } from './theme';
 
 /*
@@ -143,50 +142,5 @@ export function RangeInput({
       minimumTrackTintColor={c.primary}
       thumbTintColor={c.primary}
     />
-  );
-}
-
-/** Text input with a suggestion list under it while focused. */
-export function ComboInput({
-  value,
-  onChangeText,
-  suggestions,
-  placeholder,
-  icon,
-  label,
-}: {
-  value: string;
-  onChangeText: (v: string) => void;
-  suggestions: string[];
-  placeholder?: string;
-  icon?: IconName;
-  label: string;
-}) {
-  const c = useColors();
-  const [focused, setFocused] = useState(false);
-  const q = value.trim().toLowerCase();
-  const shown = focused ? suggestions.filter((s) => s.toLowerCase().includes(q) && s !== value).slice(0, 5) : [];
-  return (
-    <View>
-      <Input
-        accessibilityLabel={label}
-        icon={icon}
-        value={value}
-        placeholder={placeholder}
-        autoCorrect={false}
-        onChangeText={onChangeText}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
-      />
-      {shown.length ? (
-        <View style={{ marginTop: 4, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: 13, overflow: 'hidden' }}>
-          {shown.map((s) => (
-            <Pressable key={s} onPress={() => onChangeText(s)} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
-              <T>{s}</T>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-    </View>
   );
 }
