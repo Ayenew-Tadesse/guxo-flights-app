@@ -147,6 +147,14 @@ export function useApp() {
 /* --------------------------------------------------------------- account */
 
 export const loadAccount = () => loadJson<Account>(ACCOUNT_KEY);
+/** What the account logs in with: its email, or its phone number. */
+export const loginIdOf = (a: Account | null) => (a ? a.email || a.phone || '' : '');
+export function matchesLogin(a: Account | null, id: string) {
+  if (!a || !id) return false;
+  if (id.includes('@')) return !!a.email && a.email.toLowerCase() === id.toLowerCase();
+  const digits = id.replace(/\D/g, '');
+  return !!a.phone && digits.length > 0 && a.phone.replace(/\D/g, '') === digits;
+}
 export function saveAccount(a: Account) {
   saveJson(ACCOUNT_KEY, a);
   setState({ currentUser: { ...a } });

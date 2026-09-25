@@ -30,7 +30,7 @@ export default function ConnectedApps() {
         const body = !app.live
           ? `${app.name} is still being built. You'll be able to link it here when it launches.`
           : on
-            ? `Linked ${fmtDate(new Date(linked[app.id].at))} as ${a.email}. Trips on ${app.name} earn Guxo Points in this same balance.`
+            ? `Linked ${fmtDate(new Date(linked[app.id].at))} as ${a.email || a.phone}. Trips on ${app.name} earn Guxo Points in this same balance.`
             : `Link ${app.name} to share your account and points. Get +${LINK_BONUS} points the first time you link.`;
         return (
           <View

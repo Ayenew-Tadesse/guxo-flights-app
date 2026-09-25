@@ -5,18 +5,18 @@ import { View } from 'react-native';
 import { AuthScreen, OrDivider } from '@/components/auth';
 import { Button, Field, FormError, Input, T, useColors } from '@/design-system';
 import { resetTo, withLoader } from '@/state/nav';
-import { loadAccount, setState } from '@/state/store';
+import { loadAccount, loginIdOf, matchesLogin, setState } from '@/state/store';
 
 export default function LogIn() {
   const c = useColors();
-  const [email, setEmail] = useState(() => loadAccount()?.email ?? '');
+  const [loginId, setLoginId] = useState(() => loginIdOf(loadAccount()));
   const [pw, setPw] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   function submit() {
     const account = loadAccount();
-    if (!account || account.email.toLowerCase() !== email.trim().toLowerCase() || account.password !== pw) {
-      return setError('Incorrect email or password.');
+    if (!matchesLogin(account, loginId.trim()) || account!.password !== pw) {
+      return setError('Incorrect email, phone number or password.');
     }
     setError(null);
     setState({ currentUser: account });
@@ -26,8 +26,8 @@ export default function LogIn() {
   return (
     <AuthScreen title="Welcome back" sub="Log in to continue to your account.">
       <View style={{ gap: 12 }}>
-        <Field label="Email">
-          <Input accessibilityLabel="Email" value={email} onChangeText={setEmail} placeholder="you@example.com" autoCapitalize="none" keyboardType="email-address" />
+        <Field label="Email or phone number">
+          <Input accessibilityLabel="Email or phone number" value={loginId} onChangeText={setLoginId} placeholder="you@example.com or 09xx xxx xxx" autoCapitalize="none" autoComplete="username" />
         </Field>
         <Field label="Password">
           <Input accessibilityLabel="Password" value={pw} onChangeText={setPw} placeholder="Your password" secureTextEntry onSubmitEditing={submit} />

@@ -29,7 +29,8 @@ export default function PersonalDetails() {
 
   function save() {
     if (!first.trim() || !last.trim()) return setError('Enter your first and last name.');
-    if (email.trim().indexOf('@') < 1) return setError('Enter a valid email address.');
+    if (!email.trim() && !phone.trim()) return setError('Add an email address or a phone number so you can log in.');
+    if (email.trim() && email.trim().indexOf('@') < 1) return setError('Enter a valid email address.');
     const digits = phone.replace(/\D/g, '');
     if (phone.trim() && (digits.length < 9 || digits.length > 12 || /[^\d\s+]/.test(phone.trim()))) return setError('Enter a valid phone number, e.g. 0911 234 567.');
     let iso = '';

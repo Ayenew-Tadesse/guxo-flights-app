@@ -61,7 +61,7 @@ export default function Profile() {
   const linkedCount = SIBLING_APPS.filter((x) => a.linked?.[x.id]).length;
   return (
     <Screen top={<TopBar title="Profile" onBack={goBack} />}>
-      {head(a.name, a.email, initialsFor(a.name))}
+      {head(a.name, a.email || a.phone || '', initialsFor(a.name))}
       <Button small kind="tint" label="Edit profile" onPress={() => goTo('/personal-details')} style={{ alignSelf: 'center', marginTop: 12 }} />
       {comp.pct < 100 ? <CompleteCard account={a} onPress={() => goTo('/personal-details')} /> : null}
       <PointsCard onPress={() => goTo('/points')} />

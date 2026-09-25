@@ -11,7 +11,6 @@ import {
   Button,
   Gradient,
   Icon,
-  IconButton,
   Spinner,
   T,
   alpha,
@@ -22,8 +21,8 @@ import {
   useLayout,
   type IconName,
 } from '@/design-system';
-import { qrCells } from '@/data/flights';
-import { hasUnread } from '@/state/notifications';
+import { initialsFor, qrCells } from '@/data/flights';
+import { buildNotifications } from '@/state/notifications';
 import { goTo } from '@/state/nav';
 import {
   closeConfirm,
@@ -40,22 +39,78 @@ import {
 
 /* --------------------------------------------------- top bar account icons */
 
-/** Bell (with unread dot) and profile buttons; hidden for guests. */
+/**
+ * Top-right account buttons: a solid bell with the unread count, and the
+ * traveler's initials as a gradient avatar. Hidden for guests.
+ */
 export function AccountButtons({ onHero, bell = true }: { onHero?: boolean; bell?: boolean }) {
   const s = useApp();
-  if (!s.currentUser) return null;
+  const c = useColors();
+  const { atLeast } = useLayout();
+  const a = s.currentUser;
+  if (!a) return null;
+  const size = atLeast(1024) ? 42 : atLeast(600) ? 40 : 38;
+  const unread = buildNotifications(s).filter((n) => n.unread).length;
+  const lift = onHero ? '0px 6px 16px rgba(9,21,64,0.28)' : '0px 1px 2px rgba(9,21,64,0.06), 0px 4px 12px rgba(9,21,64,0.08)';
   return (
     <View style={{ flexDirection: 'row', gap: 10 }}>
       {bell ? (
-        <IconButton
-          icon="bell"
-          label={hasUnread(s) ? 'Notifications (unread)' : 'Notifications'}
-          onHero={onHero}
-          dot={hasUnread(s)}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={unread ? `Notifications, ${unread} unread` : 'Notifications'}
           onPress={() => goTo('/notifications')}
-        />
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: onHero ? 'rgba(255,255,255,0.96)' : c.surface,
+            borderWidth: onHero ? 0 : 1,
+            borderColor: c.line,
+            boxShadow: lift,
+          }}>
+          <Icon name="bell" size={19} color={c.primary} strokeWidth={2} />
+          {unread ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                minWidth: 19,
+                height: 19,
+                paddingHorizontal: 5,
+                borderRadius: 10,
+                backgroundColor: c.bad,
+                borderWidth: 2,
+                borderColor: onHero ? '#fff' : c.frame,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <T px={10} weight={700} color="#fff" lh={1}>
+                {unread > 9 ? '9+' : String(unread)}
+              </T>
+            </View>
+          ) : null}
+        </Pressable>
       ) : null}
-      <IconButton icon="user" label="Profile" onHero={onHero} onPress={() => goTo('/profile')} />
+      <Pressable accessibilityRole="button" accessibilityLabel={'Profile, ' + a.name} onPress={() => goTo('/profile')}>
+        <Gradient
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 2,
+            borderColor: onHero ? 'rgba(255,255,255,0.96)' : c.frame,
+            boxShadow: onHero ? lift : '0px 1px 2px rgba(9,21,64,0.08), 0px 4px 12px rgba(9,21,64,0.12)',
+          }}>
+          <T size={0.8125} weight={700} color="#fff" ls={0.02} lh={1}>
+            {initialsFor(a.name)}
+          </T>
+        </Gradient>
+      </Pressable>
     </View>
   );
 }

@@ -6,7 +6,7 @@ import { Heading, Input, Logo, ScreenIn, T, payColors, useColors } from '@/desig
 import { passwordStrength } from '@/data/flights';
 
 /** Centered auth column: logo, title, subtitle, form. */
-export function AuthScreen({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
+export function AuthScreen({ title, sub, header, children }: { title: string; sub: string; header?: ReactNode; children: ReactNode }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   return (
@@ -19,6 +19,7 @@ export function AuthScreen({ title, sub, children }: { title: string; sub: strin
             <View style={{ alignItems: 'center', marginBottom: 28 }}>
               <Logo />
             </View>
+            {header}
             <Heading size={1.5} align="center">
               {title}
             </Heading>
@@ -54,7 +55,7 @@ const slotPos = (n: number) => (n < 2 ? n : n < 4 ? n + 1 : n + 2);
  * Date of birth as a fixed mm/dd/yyyy mask filled strictly left to right:
  * digits land in the next empty slot and Backspace removes the last one.
  */
-export function DobInput({ digits, onDigits, label }: { digits: string; onDigits: (d: string) => void; label: string }) {
+export function DobInput({ digits, onDigits, label, onSubmit }: { digits: string; onDigits: (d: string) => void; label: string; onSubmit?: () => void }) {
   const [focused, setFocused] = useState(false);
   let display = '';
   if (digits || focused) {
@@ -73,6 +74,7 @@ export function DobInput({ digits, onDigits, label }: { digits: string; onDigits
       selection={focused ? { start: pos, end: pos } : undefined}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      onSubmitEditing={onSubmit}
       style={{ fontVariant: ['tabular-nums'], letterSpacing: 0.6 }}
       onChangeText={(text) => {
         if (text.length < display.length) onDigits(digits.slice(0, -1));
