@@ -5,7 +5,6 @@ import {
   Easing,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +14,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { alpha, mix } from './color';
@@ -499,12 +499,14 @@ export function Screen({
   return (
     <View style={{ flex: 1, backgroundColor: c.frame, paddingTop: insets.top }}>
       <ScreenIn>
-        <ScrollView
+        {/* Scrolls the focused field into view above the keyboard. */}
+        <KeyboardAwareScrollView
+          bottomOffset={24}
           contentContainerStyle={{ paddingBottom: (tabBar ? 84 : 0) + insets.bottom }}
           keyboardShouldPersistTaps="handled">
           {top}
           <View style={[padded ? { paddingHorizontal: pad, paddingBottom: pad } : null, contentStyle]}>{children}</View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </ScreenIn>
     </View>
   );

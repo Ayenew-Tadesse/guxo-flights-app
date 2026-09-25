@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Heading, Input, Logo, ScreenIn, T, payColors, useColors } from '@/design-system';
@@ -12,7 +13,8 @@ export function AuthScreen({ title, sub, header, children }: { title: string; su
   return (
     <View style={{ flex: 1, backgroundColor: c.frame }}>
       <ScreenIn>
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={24}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32, paddingHorizontal: 18 }}>
           <View style={{ width: '100%', maxWidth: 380, alignSelf: 'center' }}>
@@ -28,7 +30,7 @@ export function AuthScreen({ title, sub, header, children }: { title: string; su
             </T>
             {children}
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </ScreenIn>
     </View>
   );

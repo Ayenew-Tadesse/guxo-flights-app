@@ -4,6 +4,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Platform, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Rect } from 'react-native-svg';
 
@@ -474,6 +475,10 @@ export function TabBar({ active, onSelect }: { active: string; onSelect: (route:
     Animated.timing(x, { toValue: tabW * index + tabW / 2 - 15, duration: 250, useNativeDriver: Platform.OS !== 'web' }).start();
   }, [x, index, tabW, width]);
   const big = atLeast(768);
+  // While typing, the keyboard covers the bottom of the screen; hide the tab
+  // bar so it doesn't ride up on top of the keyboard.
+  const keyboardOpen = useKeyboardState((k) => k.isVisible);
+  if (keyboardOpen) return null;
   return (
     <View
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}

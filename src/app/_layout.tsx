@@ -9,6 +9,7 @@ import {
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import '@/global.css';
 import { ConfirmModal, PageLoader, Toast } from '@/components/ui';
@@ -39,6 +40,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({ Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold, Poppins_800ExtraBold });
   if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.primary }} />;
   return (
+    <KeyboardProvider>
     <BrandProvider brand="guxoFlights">
       <ThemeProvider value={navTheme}>
         <StatusBar style="dark" />
@@ -50,5 +52,6 @@ export default function RootLayout() {
         <ConfirmModal />
       </ThemeProvider>
     </BrandProvider>
+    </KeyboardProvider>
   );
 }
