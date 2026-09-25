@@ -1,65 +1,41 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Fragment } from 'react';
+import { View } from 'react-native';
 
-import { Button, Card, Row, Screen, Text } from '@/design-system';
-import { Colors, Radius, Spacing } from '@/constants/theme';
-import { cityOf, FARES, findFlight } from '@/data/flights';
+import { BpRow, PassCard, PnrBox } from '@/components/ui';
+import { Button, Screen, TopBar } from '@/design-system';
+import { AIRLINE, fmtPrice, fmtTime } from '@/data/flights';
+import { showRoot } from '@/state/nav';
+import { fmtPts, useApp } from '@/state/store';
 
 export default function Confirmation() {
-  const router = useRouter();
-  const { flightId = '', fare = 'standard', seat = '', pnr = '' } =
-    useLocalSearchParams<{ flightId: string; fare: string; seat: string; pnr: string }>();
-  const flight = findFlight(flightId);
-  const fareName = FARES.find((f) => f.id === fare)?.name ?? 'Standard';
-
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const s = useApp();
+  const t = s.trips.find((x) => x.id === id);
+  if (!t) return <Redirect href="/trips" />;
   return (
-    <Screen edges={['bottom']}>
-      <View style={styles.banner}>
-        <View style={styles.ok}>
-          <MaterialIcons name="check" size={26} color={Colors.onPrimary} />
-        </View>
-        <Text style={styles.bannerTitle}>{"You're booked!"}</Text>
-        <Text style={styles.bannerSub}>Your e-ticket is in My Trips.</Text>
+    <Screen top={<TopBar title="Booked" />}>
+      <PassCard icon="check" title="You're booked" sub="Saved to My Trips on this device.">
+        {t.legs.map((lg, i) => (
+          <Fragment key={i}>
+            {lg.label ? <BpRow label={lg.label} strong /> : null}
+            <BpRow label="Route" value={lg.origin + ' → ' + lg.destination} />
+            <BpRow label="Flight" value={AIRLINE.name + ' ' + lg.flightNo} />
+            <BpRow label="Departs" value={fmtTime(lg.dep)} />
+            <BpRow label="Seats" value={lg.seats.join(', ')} />
+          </Fragment>
+        ))}
+        <BpRow label="Fare" value={t.fareName} />
+        <BpRow label={'Passenger' + (t.names.length > 1 ? 's' : '')} value={t.names.join(', ')} />
+        <BpRow label="Total paid" value={fmtPrice(t.price)} />
+        {t.pointsUsed ? <BpRow label="Guxo Points used" value={'−' + fmtPts(t.pointsUsed)} /> : null}
+        <BpRow label="Guxo Points earned" value={t.pointsEarned ? '+' + fmtPts(t.pointsEarned) : 'Sign up to earn points'} />
+        <PnrBox label="Confirmation code" code={t.pnr} />
+      </PassCard>
+      <View style={{ gap: 10, marginTop: 18 }}>
+        <Button block label="View in My Trips" onPress={() => showRoot('/trips')} />
+        <Button block kind="ghost" label="Book another flight" onPress={() => showRoot('/home')} />
       </View>
-      {flight ? (
-        <Card>
-          <Row label="From" value={`${cityOf(flight.from)} (${flight.from})`} />
-          <Row label="To" value={`${cityOf(flight.to)} (${flight.to})`} />
-          <Row label="Departs" value={flight.depart} />
-          <Row label="Fare" value={fareName} />
-          <Row label="Seat" value={seat} />
-        </Card>
-      ) : null}
-      <Card style={styles.pnrCard}>
-        <Text variant="label">Booking reference</Text>
-        <Text style={styles.pnr}>{pnr}</Text>
-      </Card>
-      <Button label="Go to My Trips" onPress={() => router.replace('/trips')} />
-      <Button label="Back to Home" kind="ghost" onPress={() => router.replace('/home')} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.large,
-    padding: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.one,
-  },
-  ok: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.two,
-  },
-  bannerTitle: { color: Colors.onPrimary, fontSize: 22, fontWeight: '800' },
-  bannerSub: { color: '#DCE3FF' },
-  pnrCard: { alignItems: 'center', gap: Spacing.one },
-  pnr: { fontSize: 24, fontWeight: '800', letterSpacing: 3, color: Colors.primary },
-});

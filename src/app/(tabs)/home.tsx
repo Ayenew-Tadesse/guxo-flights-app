@@ -1,58 +1,66 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Link } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Brand } from '@/components/brand';
 import { SearchForm } from '@/components/search-form';
-import { Screen, Text } from '@/design-system';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { AccountButtons } from '@/components/ui';
+import { Button, Heading, Logo, Screen, T, useLayout } from '@/design-system';
+import { goTo, resetTo } from '@/state/nav';
+import { loadAccount, useApp } from '@/state/store';
+
+const HERO = require('../../../assets/images/hero.jpg');
 
 export default function Home() {
+  const s = useApp();
+  const insets = useSafeAreaInsets();
+  const { height, column, atLeast, pad } = useLayout();
+  const user = s.currentUser;
+  // Phones: half the window tall. Wider: sized from the photo's crop ratio.
+  const heroH = atLeast(768) ? (column * 597) / 1400 : height * 0.5;
+  const cardTop = atLeast(768) ? -46 : 212 - heroH;
+
+  const hero = (
+    <View style={{ height: heroH, borderBottomLeftRadius: 40, borderBottomRightRadius: 40, overflow: 'hidden', backgroundColor: '#B8BEC9', marginTop: -insets.top }}>
+      <Image source={HERO} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />
+      <LinearGradient
+        colors={['rgba(9,21,64,0.15)', 'rgba(9,21,64,0.1)', 'rgba(9,21,64,0.55)']}
+        locations={[0, 0.4, 1]}
+        style={{ position: 'absolute', inset: 0 }}
+        pointerEvents="none"
+      />
+      <View style={{ position: 'absolute', top: insets.top, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 18 }}>
+        <Logo onHero />
+        {user ? (
+          <AccountButtons onHero />
+        ) : (
+          <Button small kind="tint" label="Sign up" onPress={() => resetTo(loadAccount() ? '/log-in' : '/sign-up')} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
+        )}
+      </View>
+      <Pressable
+        disabled={!user}
+        accessibilityRole={user ? 'button' : undefined}
+        accessibilityLabel={user ? 'Open profile' : undefined}
+        onPress={() => goTo('/profile')}
+        style={{ position: 'absolute', left: 18, right: 18, top: insets.top + 100 }}>
+        {user ? (
+          <T size={1} weight={500} color="rgba(255,255,255,0.9)">
+            Welcome back ›
+          </T>
+        ) : null}
+        <Heading size={2} weight={800} color="#fff" style={{ marginTop: 2, maxWidth: 360 }}>
+          {user ? user.name : 'Hello there'}
+        </Heading>
+      </Pressable>
+    </View>
+  );
+
   return (
-    <Screen>
-      <View style={styles.top}>
-        <Brand />
-        <View style={styles.icons}>
-          <Link href="/notifications" asChild>
-            <Pressable style={styles.iconBtn} accessibilityLabel="Notifications">
-              <MaterialIcons name="notifications-none" size={20} color={Colors.inkSoft} />
-            </Pressable>
-          </Link>
-          <Link href="/profile" asChild>
-            <Pressable style={styles.iconBtn} accessibilityLabel="Profile">
-              <MaterialIcons name="person-outline" size={20} color={Colors.inkSoft} />
-            </Pressable>
-          </Link>
-        </View>
+    <Screen top={hero}>
+      <View style={{ marginTop: cardTop, zIndex: 4, marginHorizontal: 0 }}>
+        <SearchForm />
       </View>
-      <View style={styles.hero}>
-        <Text style={styles.heroHi}>Welcome back</Text>
-        <Text style={styles.heroTitle}>Where are you flying next?</Text>
-      </View>
-      <SearchForm />
+      <View style={{ height: pad }} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  icons: { flexDirection: 'row', gap: Spacing.two },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hero: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.large,
-    padding: Spacing.four,
-    gap: Spacing.one,
-  },
-  heroHi: { color: '#DCE3FF', fontSize: 15, fontWeight: '500' },
-  heroTitle: { color: Colors.onPrimary, fontSize: 28, fontWeight: '800', lineHeight: 32 },
-});

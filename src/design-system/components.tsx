@@ -1,232 +1,525 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import type { ComponentProps, ReactNode } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
+  Animated,
+  Easing,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text as RNText,
+  Text,
   TextInput,
   View,
+  type StyleProp,
   type TextInputProps,
-  type TextProps,
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useBrand } from './theme';
-import { maxContentWidth, radius, spacing, type, type TypeRole } from './tokens';
+import { alpha, mix } from './color';
+import { Icon, type IconName } from './icons';
+import { useColors, useLayout } from './theme';
+import { fonts, radius, shadow, type Weight } from './tokens';
 
-type IconName = ComponentProps<typeof MaterialIcons>['name'];
+/* ------------------------------------------------------------------ text */
 
-// ---------- Text ----------
+type TProps = {
+  children: ReactNode;
+  /** Size in prototype rems; scales with the responsive tier. */
+  size?: number;
+  /** Fixed pixel size (for the prototypes' px-sized text). */
+  px?: number;
+  weight?: Weight;
+  color?: string;
+  align?: TextStyle['textAlign'];
+  /** Letter spacing in em. */
+  ls?: number;
+  upper?: boolean;
+  /** Line height as a multiple of the font size. */
+  lh?: number;
+  numberOfLines?: number;
+  style?: StyleProp<TextStyle>;
+  /** Makes the text a link-style button. */
+  onPress?: () => void;
+};
 
-type TextTone = 'ink' | 'soft' | 'faint' | 'primary' | 'onPrimary' | 'bad' | 'good';
-
-export function Text({
-  variant = 'body',
-  tone,
-  style,
-  ...props
-}: TextProps & { variant?: TypeRole; tone?: TextTone }) {
-  const { colors } = useBrand();
-  const defaultTone: TextTone = variant === 'label' ? 'faint' : variant === 'caption' ? 'soft' : 'ink';
-  const color = {
-    ink: colors.ink,
-    soft: colors.inkSoft,
-    faint: colors.inkFaint,
-    primary: colors.primary,
-    onPrimary: colors.onPrimary,
-    bad: colors.bad,
-    good: colors.good,
-  }[tone ?? defaultTone];
-  return <RNText {...props} style={[type[variant] as TextStyle, { color }, style]} />;
-}
-
-// ---------- Surfaces ----------
-
-export function Card({ children, style, tone = 'surface' }: { children: ReactNode; style?: ViewStyle; tone?: 'surface' | 'primary' }) {
-  const { colors } = useBrand();
-  const bg = tone === 'primary' ? { backgroundColor: colors.primary, borderColor: colors.primary } : { backgroundColor: colors.surface, borderColor: colors.line };
-  return <View style={[styles.card, bg, style]}>{children}</View>;
-}
-
-type ScreenProps = { children: ReactNode; scroll?: boolean; edges?: Edge[]; contentStyle?: ViewStyle };
-
-/** Page wrapper: brand background, safe areas and a centred max-width column. */
-export function Screen({ children, scroll = true, edges = ['top'], contentStyle }: ScreenProps) {
-  const { colors } = useBrand();
-  const inner = <View style={[styles.column, contentStyle]}>{children}</View>;
+/** Poppins text. Default matches the prototypes' body: 14px, regular, ink. */
+export function T({ children, size, px, weight = 400, color, align, ls, upper, lh, numberOfLines, style, onPress }: TProps) {
+  const c = useColors();
+  const { rem } = useLayout();
+  const fontSize = px ?? (size ? rem(size) : 14);
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={edges}>
-      {scroll ? (
-        <ScrollView contentContainerStyle={styles.grow} keyboardShouldPersistTaps="handled">
-          {inner}
-        </ScrollView>
-      ) : (
-        inner
-      )}
-    </SafeAreaView>
+    <Text
+      numberOfLines={numberOfLines}
+      onPress={onPress}
+      accessibilityRole={onPress ? 'link' : undefined}
+      style={[
+        {
+          fontFamily: fonts[weight],
+          fontSize,
+          color: color ?? c.ink,
+          textAlign: align,
+          letterSpacing: ls ? ls * fontSize : undefined,
+          textTransform: upper ? 'uppercase' : undefined,
+          lineHeight: lh ? lh * fontSize : undefined,
+        },
+        style,
+      ]}>
+      {children}
+    </Text>
   );
 }
 
-// ---------- Actions ----------
+/** Headline (h1/h2/h3): 1.14 line height, slightly tight tracking. */
+export function Heading({ size, weight = 700, color, align, style, children }: Omit<TProps, 'lh' | 'ls'>) {
+  return (
+    <T size={size} weight={weight} color={color} align={align} lh={1.14} ls={-0.01} style={style}>
+      {children}
+    </T>
+  );
+}
 
-type ButtonProps = {
+/* -------------------------------------------------------------- surfaces */
+
+/** The brand's 135° primary gradient. */
+export function Gradient({ style, children, from, to }: { style?: StyleProp<ViewStyle>; children?: ReactNode; from?: string; to?: string }) {
+  const c = useColors();
+  return (
+    <LinearGradient colors={[from ?? c.primary, to ?? c.primary2]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={style}>
+      {children}
+    </LinearGradient>
+  );
+}
+
+/** White card with the prototypes' border and shadow. */
+export function Card({ style, children }: { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const c = useColors();
+  return (
+    <View
+      style={[
+        { backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: radius.card, padding: 14, boxShadow: shadow },
+        style,
+      ]}>
+      {children}
+    </View>
+  );
+}
+
+/** Tinted inset box (itinerary, price breakdown, payment status). */
+export function Inset({ style, children }: { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const c = useColors();
+  return <View style={[{ backgroundColor: c.surfaceAlt, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }, style]}>{children}</View>;
+}
+
+/** Label / value row inside an Inset. */
+export function InsetRow({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+      <T size={0.7812} color={c.inkFaint}>{label}</T>
+      {children ?? <T size={0.7812} style={{ flexShrink: 1, textAlign: 'right' }}>{value}</T>}
+    </View>
+  );
+}
+
+/* --------------------------------------------------------------- buttons */
+
+type ButtonKind = 'primary' | 'ghost' | 'danger' | 'tint';
+
+export function Button({
+  label,
+  onPress,
+  kind = 'primary',
+  small,
+  block,
+  icon,
+  disabled,
+  style,
+}: {
   label: string;
-  onPress: () => void;
-  kind?: 'primary' | 'ghost' | 'danger';
-  size?: 'regular' | 'small';
+  onPress?: () => void;
+  kind?: ButtonKind;
+  small?: boolean;
+  block?: boolean;
   icon?: IconName;
   disabled?: boolean;
-};
-
-export function Button({ label, onPress, kind = 'primary', size = 'regular', icon, disabled }: ButtonProps) {
-  const { colors } = useBrand();
-  const look = {
-    primary: { bg: colors.primary, border: colors.primary, fg: colors.onPrimary },
-    ghost: { bg: colors.surfaceAlt, border: colors.line, fg: colors.ink },
-    danger: { bg: colors.surface, border: colors.bad, fg: colors.bad },
+  style?: StyleProp<ViewStyle>;
+}) {
+  const c = useColors();
+  const { atLeast } = useLayout();
+  // The prototypes' wider tiers pad every button (small ones too) more.
+  const [py, px] = atLeast(1440) ? [16, 30] : atLeast(1024) ? [15, 28] : atLeast(600) ? [14, 24] : small ? [10, 14] : [13, 18];
+  const palette = {
+    primary: { bg: 'transparent', border: 'transparent', fg: c.primaryInk },
+    ghost: { bg: c.surfaceAlt, border: c.line, fg: c.ink },
+    danger: { bg: mix(c.bad, 12, c.surface), border: mix(c.bad, 35, c.line), fg: c.bad },
+    tint: { bg: mix(c.primary, 12, c.surface), border: mix(c.primary, 30, c.line), fg: c.primary },
   }[kind];
+  const inner = (
+    <>
+      {icon ? <Icon name={icon} size={16} color={palette.fg} strokeWidth={2} /> : null}
+      <T size={small ? 0.8125 : 0.9062} weight={700} color={palette.fg}>
+        {label}
+      </T>
+    </>
+  );
+  const box: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: py,
+    paddingHorizontal: px,
+    borderRadius: radius.button,
+    borderWidth: 1,
+    borderColor: palette.border,
+    backgroundColor: palette.bg,
+    overflow: 'hidden',
+  };
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
-        styles.button,
-        size === 'small' && styles.buttonSmall,
-        { backgroundColor: look.bg, borderColor: look.border },
-        (pressed || disabled) && { opacity: disabled ? 0.45 : 0.85 },
+        block ? { alignSelf: 'stretch' } : { alignSelf: 'flex-start' },
+        { opacity: disabled ? 0.4 : pressed ? 0.85 : 1, borderRadius: radius.button },
+        Platform.OS === 'web' ? ({ cursor: disabled ? 'not-allowed' : 'pointer' } as ViewStyle) : null,
+        style,
       ]}>
-      {icon ? <MaterialIcons name={icon} size={size === 'small' ? 16 : 18} color={look.fg} /> : null}
-      <RNText style={[styles.buttonLabel, size === 'small' && styles.buttonLabelSmall, { color: look.fg }]}>{label}</RNText>
+      {kind === 'primary' ? <Gradient style={box}>{inner}</Gradient> : <View style={box}>{inner}</View>}
     </Pressable>
   );
 }
 
-export function IconButton({ icon, onPress, label }: { icon: IconName; onPress?: () => void; label: string }) {
-  const { colors } = useBrand();
+/** Round icon button used in top bars (bell, profile, back). */
+export function IconButton({
+  icon,
+  label,
+  onPress,
+  onHero,
+  dot,
+  variant = 'alt',
+}: {
+  icon: IconName;
+  label: string;
+  onPress?: () => void;
+  onHero?: boolean;
+  dot?: boolean;
+  variant?: 'alt' | 'surface';
+}) {
+  const c = useColors();
+  const { atLeast } = useLayout();
+  const size = atLeast(1024) ? 40 : atLeast(600) ? 37 : 34;
+  const isBack = icon === 'back';
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.iconButton,
-        { backgroundColor: colors.surfaceAlt, borderColor: colors.line },
-        pressed && { opacity: 0.8 },
-      ]}>
-      <MaterialIcons name={icon} size={20} color={colors.inkSoft} />
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: onHero ? 'rgba(255,255,255,0.3)' : c.line,
+        backgroundColor: onHero ? 'rgba(255,255,255,0.18)' : variant === 'surface' ? c.surface : c.surfaceAlt,
+      }}>
+      <Icon name={icon} size={16} color={onHero ? '#fff' : isBack ? c.ink : c.inkSoft} strokeWidth={isBack ? 2.2 : 1.8} />
+      {dot ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 7,
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: c.primary2,
+            borderWidth: 1.5,
+            borderColor: c.frame,
+          }}
+        />
+      ) : null}
     </Pressable>
   );
 }
 
-// ---------- Inputs ----------
+/* ----------------------------------------------------------------- brand */
 
-export function TextField({ label, error, ...props }: TextInputProps & { label: string; error?: string }) {
-  const { colors } = useBrand();
+export function LogoMark({ size = 30 }: { size?: number }) {
   return (
-    <View style={styles.field}>
-      <Text variant="label">{label}</Text>
+    <Gradient style={{ width: size, height: size, borderRadius: size * 0.3, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon name="plane" size={size * 0.53} color="#fff" strokeWidth={2} />
+    </Gradient>
+  );
+}
+
+export function Logo({ onHero }: { onHero?: boolean }) {
+  const c = useColors();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <LogoMark />
+      <T size={1.0625} weight={800} color={onHero ? '#fff' : c.ink}>
+        Guxo Flights
+      </T>
+    </View>
+  );
+}
+
+/* ---------------------------------------------------------------- inputs */
+
+/** Uppercase field label. */
+export function FieldLabel({ children }: { children: string }) {
+  const c = useColors();
+  return (
+    <T size={0.6875} weight={700} color={c.inkFaint} upper ls={0.06}>
+      {children}
+    </T>
+  );
+}
+
+/** Label above a control, with the prototypes' 5px gap. */
+export function Field({ label, children, style }: { label: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ gap: 5 }, style]}>
+      <FieldLabel>{label}</FieldLabel>
+      {children}
+    </View>
+  );
+}
+
+/** Shared look for text inputs, selects and date inputs. */
+export function useInputStyle(hasIcon: boolean, focused: boolean) {
+  const c = useColors();
+  const { rem, atLeast } = useLayout();
+  const p = atLeast(768) ? 13 : 12;
+  return {
+    fontFamily: fonts[400],
+    fontSize: rem(0.9062),
+    color: c.ink,
+    backgroundColor: c.surfaceAlt,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderRadius: radius.field,
+    paddingVertical: p,
+    paddingRight: p,
+    paddingLeft: hasIcon ? (atLeast(768) ? 38 : 36) : p,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? { outlineStyle: focused ? 'solid' : 'none', outlineWidth: 2, outlineColor: c.primary, outlineOffset: 1 }
+      : focused
+        ? { borderColor: c.primary }
+        : null),
+  } as TextStyle;
+}
+
+export function Input({ icon, style, ...props }: TextInputProps & { icon?: IconName }) {
+  const c = useColors();
+  const [focused, setFocused] = useState(false);
+  // The prototypes indent every text input's text as if it had an icon.
+  const inputStyle = useInputStyle(true, focused);
+  return (
+    <View style={{ position: 'relative', justifyContent: 'center' }}>
       <TextInput
-        placeholderTextColor={colors.inkFaint}
-        accessibilityLabel={label}
+        placeholderTextColor={c.inkFaint}
         {...props}
-        style={[
-          styles.input,
-          { backgroundColor: colors.surfaceAlt, borderColor: error ? colors.bad : colors.line, color: colors.ink },
-        ]}
+        onFocus={(e) => {
+          setFocused(true);
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          props.onBlur?.(e);
+        }}
+        style={[inputStyle, style]}
       />
-      {error ? <Text variant="caption" tone="bad">{error}</Text> : null}
+      {icon ? (
+        <View pointerEvents="none" style={{ position: 'absolute', left: 12 }}>
+          <Icon name={icon} size={16} color={c.primary} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-type ChoiceProps = { label: string; selected: boolean; onPress: () => void; detail?: string };
-
-/** Selectable option: airports, fare tiers, payment methods, filters. */
-export function Choice({ label, selected, onPress, detail }: ChoiceProps) {
-  const { colors } = useBrand();
+/** Red form error line. */
+export function FormError({ children }: { children: string | null }) {
+  const c = useColors();
+  if (!children) return null;
   return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[
-        styles.choice,
-        { borderColor: selected ? colors.primary : colors.line, backgroundColor: selected ? colors.primaryTint : colors.surface },
-      ]}>
-      <RNText style={[styles.choiceLabel, { color: selected ? colors.primary : colors.ink }]}>{label}</RNText>
-      {detail ? <RNText style={[styles.choiceDetail, { color: colors.inkFaint }]}>{detail}</RNText> : null}
-    </Pressable>
+    <T size={0.7812} weight={600} color={c.bad} style={{ marginTop: 8 }}>
+      {children}
+    </T>
   );
 }
 
-// ---------- Display ----------
+/* --------------------------------------------------------------- display */
 
-export function Row({ label, value }: { label: string; value: string }) {
+/** Small uppercase section heading. */
+export function SecTitle({ children }: { children: ReactNode }) {
+  const c = useColors();
   return (
-    <View style={styles.row}>
-      <Text variant="caption">{label}</Text>
-      <Text variant="bodyStrong">{value}</Text>
+    <T size={0.8125} weight={700} color={c.inkFaint} upper ls={0.06} style={{ marginTop: 20, marginBottom: 10 }}>
+      {children}
+    </T>
+  );
+}
+
+/** Pill badge: status (good / bad) or ribbon (cheap / fast). */
+export function Badge({ label, tone }: { label: string; tone: 'good' | 'bad' | 'primary' }) {
+  const c = useColors();
+  const color = { good: c.good, bad: c.bad, primary: c.primary }[tone];
+  return (
+    <View style={{ alignSelf: 'flex-start', backgroundColor: alpha(color, tone === 'primary' ? 0.16 : 0.14), borderRadius: radius.pill, paddingVertical: 4, paddingHorizontal: 10 }}>
+      <T size={0.6562} weight={700} color={color} upper ls={0.04}>
+        {label}
+      </T>
     </View>
   );
 }
 
-export function Badge({ label, tone = 'primary' }: { label: string; tone?: 'primary' | 'good' | 'bad' | 'neutral' }) {
-  const { colors } = useBrand();
-  const look = {
-    primary: { bg: colors.primaryTint, fg: colors.primary },
-    good: { bg: '#E3F4EA', fg: colors.good },
-    bad: { bg: '#F8E4E4', fg: colors.bad },
-    neutral: { bg: colors.surfaceAlt, fg: colors.inkSoft },
-  }[tone];
+/** Origin dot, dashed track with a plane, destination dot. */
+export function RouteDots({ style }: { style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
   return (
-    <View style={[styles.badge, { backgroundColor: look.bg }]}>
-      <RNText style={[styles.badgeLabel, { color: look.fg }]}>{label}</RNText>
+    <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 4, width: '100%' }, style]}>
+      <Gradient from="#091540" to={c.primary} style={styles.dot} />
+      <View style={{ flex: 1, height: 0, borderTopWidth: 1.6, borderStyle: 'dashed', borderColor: c.lineStrong, alignItems: 'center' }}>
+        <View style={{ position: 'absolute', top: -7.5, backgroundColor: 'transparent' }}>
+          <Icon name="plane" size={13} color={c.inkFaint} strokeWidth={2} />
+        </View>
+      </View>
+      <Gradient from={c.primary2} to="#ABD2FA" style={styles.dot} />
     </View>
   );
 }
 
-export function Divider() {
-  const { colors } = useBrand();
-  return <View style={{ height: 1, backgroundColor: colors.line }} />;
+/** Rotating ring spinner. */
+export function Spinner({ size = 34, color, track }: { size?: number; color?: string; track?: string }) {
+  const c = useColors();
+  const [spin] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 700, easing: Easing.linear, useNativeDriver: Platform.OS !== 'web' }));
+    loop.start();
+    return () => loop.stop();
+  }, [spin]);
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  return (
+    <Animated.View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 3,
+        borderColor: track ?? c.lineStrong,
+        borderTopColor: color ?? c.primary,
+        transform: [{ rotate }],
+      }}
+    />
+  );
+}
+
+/** Empty list placeholder with a call to action. */
+export function EmptyState({ message, action, onAction }: { message: string; action?: string; onAction?: () => void }) {
+  const c = useColors();
+  return (
+    <View style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 30 }}>
+      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+        <Icon name="plane" size={22} color={c.inkFaint} strokeWidth={1.6} />
+      </View>
+      <T size={0.8438} color={c.inkFaint} align="center" style={{ marginBottom: 14 }}>
+        {message}
+      </T>
+      {action ? <Button label={action} onPress={onAction} style={{ alignSelf: 'center' }} /> : null}
+    </View>
+  );
+}
+
+/* ---------------------------------------------------------------- layout */
+
+/** Fades and lifts a screen in, like the prototypes' screenIn keyframes. */
+export function ScreenIn({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const [t] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(t, {
+      toValue: 1,
+      duration: 380,
+      easing: Easing.bezier(0.22, 0.61, 0.36, 1),
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [t]);
+  const translateY = t.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
+  return <Animated.View style={[{ flex: 1, opacity: t, transform: [{ translateY }] }, style]}>{children}</Animated.View>;
+}
+
+/** Top bar: optional back button and title on the left, actions on the right. */
+export function TopBar({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
+  return (
+    <View style={styles.topbar}>
+      <View style={styles.tbSide}>
+        {onBack ? <IconButton icon="back" label="Back" onPress={onBack} variant="surface" /> : null}
+        {title ? (
+          <T size={1.0625} weight={700} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {title}
+          </T>
+        ) : null}
+      </View>
+      {right ? <View style={[styles.tbSide, { flexShrink: 0 }]}>{right}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * A scrolling screen: safe-area top, the prototypes' side padding, room
+ * for the tab bar, and the screen-in animation.
+ */
+export function Screen({
+  children,
+  top,
+  tabBar,
+  padded = true,
+  contentStyle,
+}: {
+  children: ReactNode;
+  /** Rendered above the padded content (top bar or hero). */
+  top?: ReactNode;
+  /** Leave room for the fixed tab bar. */
+  tabBar?: boolean;
+  padded?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+}) {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  const { pad } = useLayout();
+  return (
+    <View style={{ flex: 1, backgroundColor: c.frame, paddingTop: insets.top }}>
+      <ScreenIn>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: (tabBar ? 84 : 0) + insets.bottom }}
+          keyboardShouldPersistTaps="handled">
+          {top}
+          <View style={[padded ? { paddingHorizontal: pad, paddingBottom: pad } : null, contentStyle]}>{children}</View>
+        </ScrollView>
+      </ScreenIn>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  grow: { flexGrow: 1 },
-  column: {
-    flexGrow: 1,
-    width: '100%',
-    maxWidth: maxContentWidth,
-    alignSelf: 'center',
-    padding: spacing.three,
-    gap: spacing.three,
-  },
-  card: { borderRadius: radius.large, borderWidth: 1, padding: spacing.three, gap: spacing.three },
-  button: {
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  topbar: {
     flexDirection: 'row',
-    gap: spacing.two,
-    borderRadius: radius.medium,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.four,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    zIndex: 5,
   },
-  buttonSmall: { paddingVertical: 9, paddingHorizontal: spacing.three, borderRadius: radius.small },
-  buttonLabel: { fontSize: 15, fontWeight: '700' },
-  buttonLabelSmall: { fontSize: 13 },
-  iconButton: { width: 36, height: 36, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  field: { gap: spacing.one },
-  input: { borderWidth: 1, borderRadius: radius.medium, paddingHorizontal: 12, paddingVertical: 12, fontSize: 15 },
-  choice: { borderWidth: 1.5, borderRadius: radius.medium, paddingVertical: 10, paddingHorizontal: 14, gap: 2 },
-  choiceLabel: { fontSize: 14, fontWeight: '700' },
-  choiceDetail: { fontSize: 12 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.three },
-  badge: { alignSelf: 'flex-start', borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 10 },
-  badgeLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  tbSide: { flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 },
 });
