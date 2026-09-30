@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type TextInput, type ViewS
 import { Button, DateInput, Field, FormError, Icon, T, shadow, useColors, useLayout } from '@/design-system';
 import { addDaysIso, airport, findAirportByInput, formatAirport, todayIso } from '@/data/flights';
 import { goTo } from '@/state/nav';
-import { getState, startSearch } from '@/state/store';
+import { getBooking, startSearch } from '@/state/booking';
 
 import { AirportField } from './airport-field';
 
@@ -12,7 +12,7 @@ import { AirportField } from './airport-field';
 export function SearchForm({ compact, style }: { compact?: boolean; style?: StyleProp<ViewStyle> }) {
   const c = useColors();
   const { atLeast } = useLayout();
-  const init = getState();
+  const init = getBooking();
   const [tripType, setTripType] = useState<'one' | 'round'>('one');
   const [from, setFrom] = useState(formatAirport(airport(init.origin)));
   const [to, setTo] = useState(formatAirport(airport(init.destination)));

@@ -6,7 +6,8 @@ import { type IconName } from '@/design-system';
 import { AIRLINE, todayIso } from '@/data/flights';
 
 import { goTo, showRoot } from './nav';
-import { getState, setState, startSearch, tripRouteText, type AppState } from './store';
+import { startSearch } from './booking';
+import { getState, setState, tripRouteText, type AppState } from './store';
 
 export type Notif = {
   id: string;

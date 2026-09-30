@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ResumeBooking } from '@/components/resume-booking';
 import { SearchForm } from '@/components/search-form';
 import { AccountButtons } from '@/components/ui';
 import { Button, Heading, Logo, Screen, T, useLayout } from '@/design-system';
@@ -58,6 +59,7 @@ export default function Home() {
   return (
     <Screen top={hero}>
       <View style={{ marginTop: cardTop, zIndex: 4, marginHorizontal: 0 }}>
+        <ResumeBooking />
         <SearchForm />
       </View>
       <View style={{ height: pad }} />

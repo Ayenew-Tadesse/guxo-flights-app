@@ -2,7 +2,8 @@
 import { addDaysIso, pick, randInt, todayIso } from '@/data/flights';
 
 import { goTo, showRoot } from './nav';
-import { addPoints, getState, openConfirm, startSearch, updateTrip, type Trip } from './store';
+import { startSearch } from './booking';
+import { addPoints, getState, openConfirm, updateTrip, type Trip } from './store';
 
 export function rebook(t: Trip) {
   const out = t.legs[0];

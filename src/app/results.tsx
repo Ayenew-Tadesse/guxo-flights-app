@@ -1,39 +1,20 @@
-import { Redirect } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { FlightCard } from '@/components/flight-card';
 import { FieldLabel, Gradient, RangeInput, Screen, SelectInput, T, TopBar, alpha, mix, useColors } from '@/design-system';
-import { airport, fmtDate, fmtPrice, withSeatMap, type Flight } from '@/data/flights';
+import { airport, fmtDate, fmtPrice, type Flight } from '@/data/flights';
 import { goBack, goTo } from '@/state/nav';
-import { currentLegParams, getState, loadLegResults, loadTraveler, setState, useApp } from '@/state/store';
+import { chooseFlight, currentLegParams, pickDate, setStep, useBooking } from '@/state/booking';
 
-function chooseFlight(f: Flight) {
-  const s = getState();
-  const flight = withSeatMap(f);
-  if (s.bookingLeg === 'out') {
-    setState({ outFlight: flight });
-    if (s.tripType === 'round') {
-      setState({ bookingLeg: 'return' });
-      loadLegResults();
-      return;
-    }
-  } else {
-    setState({ returnFlight: flight });
-  }
-  const saved = loadTraveler();
-  setState({
-    fareTier: null,
-    seatsOut: [],
-    seatsReturn: [],
-    names: Array.from({ length: s.passengers }, (_, i) => (i === 0 && saved?.name ? saved.name : '')),
-    paxEmail: saved?.email ?? '',
-  });
-  goTo('/fare');
+function select(f: Flight) {
+  if (chooseFlight(f) === 'fare') goTo('/fare');
 }
 
 export default function Results() {
-  const s = useApp();
+  const s = useBooking();
+  useFocusEffect(useCallback(() => setStep('results'), []));
   if (!s.flights.length) return <Redirect href="/home" />;
   const p = currentLegParams(s);
   return (
@@ -46,7 +27,7 @@ export default function Results() {
 
 function ResultsBody() {
   const c = useColors();
-  const s = useApp();
+  const s = useBooking();
   const p = currentLegParams(s);
   const prices = s.flights.map((f) => f.price);
   const min = Math.min(...prices);
@@ -77,12 +58,6 @@ function ResultsBody() {
     });
   const cheapestId = list.length ? list.slice().sort((a, b) => a.price - b.price)[0].id : null;
   const fastestId = list.length ? list.slice().sort((a, b) => a.durationMin - b.durationMin)[0].id : null;
-
-  function pickDate(iso: string) {
-    if (isOut) setState((st) => ({ departDate: iso, returnDate: st.returnDate && st.returnDate < iso ? iso : st.returnDate }));
-    else setState({ returnDate: iso });
-    loadLegResults();
-  }
 
   return (
     <View>
@@ -207,7 +182,7 @@ function ResultsBody() {
               destination={p.d}
               cheapest={f.id === cheapestId}
               fastest={f.id === fastestId}
-              onSelect={() => chooseFlight(f)}
+              onSelect={() => select(f)}
             />
           ))
         ) : (

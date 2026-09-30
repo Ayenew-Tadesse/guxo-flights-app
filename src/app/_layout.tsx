@@ -15,6 +15,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import '@/global.css';
 import { ConfirmModal, PageLoader, Toast } from '@/components/ui';
 import { BrandProvider, brands, useLayout } from '@/design-system';
+import { BOOKING_KEY, useBooking } from '@/state/booking';
 import { hydrateStorage } from '@/state/storage';
 import { ACCOUNT_KEY, TRAVELER_KEY } from '@/state/store';
 
@@ -44,7 +45,9 @@ export default function RootLayout() {
   // Phones: read what's saved on the device before any screen asks for it.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    hydrateStorage([ACCOUNT_KEY, TRAVELER_KEY]).finally(() => setHydrated(true));
+    hydrateStorage([ACCOUNT_KEY, TRAVELER_KEY, BOOKING_KEY])
+      .then(() => useBooking.persist.rehydrate())
+      .finally(() => setHydrated(true));
   }, []);
   if (!loaded || !hydrated) return <View style={{ flex: 1, backgroundColor: colors.primary }} />;
   return (

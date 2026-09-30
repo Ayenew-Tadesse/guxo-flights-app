@@ -1,12 +1,13 @@
-import { Redirect } from 'expo-router';
-import { Fragment } from 'react';
+import { Redirect, useFocusEffect } from 'expo-router';
+import { Fragment, useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Selectable } from '@/components/ui';
-import { Button, Field, Gradient, Input, Screen, SecTitle, T, TopBar, useColors, useLayout } from '@/design-system';
+import { Button, Field, FormError, Gradient, Input, Screen, SecTitle, T, TopBar, useColors, useLayout } from '@/design-system';
 import { AIRLINE, FARES, SEAT_LETTERS, SEAT_ROWS, fmtDur, fmtPrice, fmtTime, type Flight } from '@/data/flights';
 import { goBack, goTo } from '@/state/nav';
-import { fmtPts, loadTraveler, pointsFor, saveTraveler, setState, useApp } from '@/state/store';
+import { bookingErrors, bookingValid, setEmail, setFare, setName, setStep, toggleSeat, useBooking } from '@/state/booking';
+import { fmtPts, loadTraveler, pointsFor, saveTraveler, showToast } from '@/state/store';
 
 function SummaryStrip({ f, o, d, label }: { f: Flight; o: string; d: string; label?: string }) {
   return (
@@ -93,28 +94,29 @@ function SeatMap({ f, picked, max, onToggle }: { f: Flight; picked: string[]; ma
 
 export default function Fare() {
   const c = useColors();
-  const s = useApp();
+  const s = useBooking();
+  // Errors show once a field is left, or for everything after Continue.
+  const [tried, setTried] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  useFocusEffect(useCallback(() => setStep('fare'), []));
   if (!s.outFlight || (s.tripType === 'round' && !s.returnFlight)) return <Redirect href="/home" />;
   const isRound = s.tripType === 'round';
   const legSum = s.outFlight.price + (isRound && s.returnFlight ? s.returnFlight.price : 0);
   const saved = loadTraveler();
   const pax = s.passengers;
+  const errors = bookingErrors(s);
+  const show = (key: string) => tried || !!touched[key];
+  const leave = (key: string) => setTouched((t) => (t[key] ? t : { ...t, [key]: true }));
 
-  function toggleSeat(key: 'seatsOut' | 'seatsReturn', id: string) {
-    const arr = s[key];
-    if (arr.includes(id)) setState({ [key]: arr.filter((x) => x !== id) } as never);
-    else if (arr.length < pax) setState({ [key]: [...arr, id] } as never);
-  }
-  function setName(i: number, v: string) {
-    const names = s.names.slice();
-    names[i] = v;
-    setState({ names });
+  function changeName(i: number, v: string) {
+    setName(i, v);
     if (i === 0) saveTraveler(v.trim(), s.paxEmail.trim());
   }
-
-  const namesOk = s.names.length === pax && s.names.every((n) => n.trim().length > 1);
-  const seatsOk = s.seatsOut.length === pax && (!isRound || s.seatsReturn.length === pax);
-  const ok = !!s.fareTier && seatsOk && namesOk && s.paxEmail.trim().length > 3;
+  function next() {
+    if (bookingValid()) return goTo('/payment');
+    setTried(true);
+    showToast('Check the highlighted details to continue.');
+  }
 
   return (
     <Screen top={<TopBar title="Fare & Seats" onBack={goBack} />}>
@@ -129,7 +131,7 @@ export default function Fare() {
           const per = legSum + t.add * (isRound ? 2 : 1);
           const on = s.fareTier === t.id;
           return (
-            <Selectable key={t.id} selected={on} onPress={() => setState({ fareTier: t.id })} label={t.name + ' fare, ' + fmtPrice(per)}>
+            <Selectable key={t.id} selected={on} onPress={() => setFare(t.id)} label={t.name + ' fare, ' + fmtPrice(per)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, paddingVertical: 14, paddingHorizontal: 16 }}>
                 <View style={{ flexShrink: 1 }}>
                   <T size={0.9375} weight={700}>
@@ -157,6 +159,7 @@ export default function Fare() {
           );
         })}
       </View>
+      <FormError>{tried ? errors.fare : null}</FormError>
       <View style={{ backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.line, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14, marginTop: 12, gap: 6 }}>
         {[
           "Infants under 2 fly free on a parent's lap",
@@ -182,7 +185,14 @@ export default function Fare() {
         {Array.from({ length: pax }, (_, i) => (
           <View key={i} style={{ gap: 10 }}>
             <Field label={'Passenger ' + (i + 1) + ' full name'}>
-              <Input accessibilityLabel={'Passenger ' + (i + 1) + ' full name'} value={s.names[i] ?? ''} onChangeText={(v) => setName(i, v)} />
+              <Input
+                accessibilityLabel={'Passenger ' + (i + 1) + ' full name'}
+                value={s.names[i] ?? ''}
+                autoComplete={i === 0 ? 'name' : 'off'}
+                onChangeText={(v) => changeName(i, v)}
+                onBlur={() => leave('name' + i)}
+              />
+              <FormError>{show('name' + i) ? errors.names[i] : null}</FormError>
             </Field>
             {i === 0 ? (
               <Field label="Email">
@@ -191,11 +201,14 @@ export default function Fare() {
                   value={s.paxEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
+                  autoComplete="email"
                   onChangeText={(v) => {
-                    setState({ paxEmail: v });
+                    setEmail(v);
                     saveTraveler((s.names[0] ?? '').trim(), v.trim());
                   }}
+                  onBlur={() => leave('email')}
                 />
+                <FormError>{show('email') ? errors.email : null}</FormError>
               </Field>
             ) : null}
           </View>
@@ -203,11 +216,13 @@ export default function Fare() {
       </View>
 
       <SecTitle>{(isRound ? 'Outbound seats' : 'Pick your seat') + ' — pick ' + pax + ' seat' + (pax > 1 ? 's' : '')}</SecTitle>
-      <SeatMap f={s.outFlight} picked={s.seatsOut} max={pax} onToggle={(id) => toggleSeat('seatsOut', id)} />
+      <SeatMap f={s.outFlight} picked={s.seatsOut} max={pax} onToggle={(id) => toggleSeat('out', id)} />
+      <FormError>{tried ? errors.seatsOut : null}</FormError>
       {isRound && s.returnFlight ? (
         <>
           <SecTitle>{'Return seats — pick ' + pax + ' seat' + (pax > 1 ? 's' : '')}</SecTitle>
-          <SeatMap f={s.returnFlight} picked={s.seatsReturn} max={pax} onToggle={(id) => toggleSeat('seatsReturn', id)} />
+          <SeatMap f={s.returnFlight} picked={s.seatsReturn} max={pax} onToggle={(id) => toggleSeat('return', id)} />
+          <FormError>{tried ? errors.seatsReturn : null}</FormError>
         </>
       ) : null}
       <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 12 }}>
@@ -224,7 +239,7 @@ export default function Fare() {
           </View>
         ))}
       </View>
-      <Button block label="Continue to payment" disabled={!ok} onPress={() => goTo('/payment')} style={{ marginTop: 18 }} />
+      <Button block label="Continue to payment" onPress={next} style={{ marginTop: 18 }} />
     </Screen>
   );
 }
