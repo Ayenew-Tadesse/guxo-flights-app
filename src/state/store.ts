@@ -1,10 +1,10 @@
 /**
- * App state, kept in one small store like the web prototype's `state`
+ * App state, kept in one Zustand store like the web prototype's `state`
  * object. Screens read it with `useApp()` and change it with the actions
  * below. The account (with points, cards and linked apps) and the saved
  * traveler are persisted; trips live for the session, as in the prototype.
  */
-import { useSyncExternalStore } from 'react';
+import { create } from 'zustand';
 
 import {
   addDaysIso,
@@ -100,10 +100,10 @@ export type AppState = {
   confirm: { title: string; body: string; ok: string; cancel?: string; danger?: boolean; onOk: () => void } | null;
 };
 
-const ACCOUNT_KEY = 'hidgo_account';
-const TRAVELER_KEY = 'hidgo_traveler';
+export const ACCOUNT_KEY = 'hidgo_account';
+export const TRAVELER_KEY = 'hidgo_traveler';
 
-let state: AppState = {
+const initialState: AppState = {
   currentUser: null,
   origin: 'ADD',
   destination: 'MQX',
@@ -129,19 +129,15 @@ let state: AppState = {
   confirm: null,
 };
 
-const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
+export const useAppStore = create<AppState>()(() => initialState);
 
-export const getState = () => state;
+export const getState = useAppStore.getState;
 export function setState(patch: Partial<AppState> | ((s: AppState) => Partial<AppState>)) {
-  state = { ...state, ...(typeof patch === 'function' ? patch(state) : patch) };
-  listeners.forEach((l) => l());
+  useAppStore.setState(patch);
 }
+/** The whole app state (screens that need one field can use `useAppStore(selector)`). */
 export function useApp() {
-  return useSyncExternalStore(subscribe, getState, getState);
+  return useAppStore();
 }
 
 /* --------------------------------------------------------------- account */
@@ -164,7 +160,7 @@ export const saveTraveler = (name: string, email: string) => saveJson(TRAVELER_K
 
 /** Apply a change to the signed-in account and persist it. */
 export function updateAccount(fn: (a: Account) => void) {
-  const cur = state.currentUser;
+  const cur = getState().currentUser;
   if (!cur) return;
   const a: Account = JSON.parse(JSON.stringify(cur));
   fn(a);
@@ -215,7 +211,7 @@ export function tierInfo(a: Account | null) {
 
 /** Adds a ledger entry; a `key` makes one-time bonuses and per-trip entries idempotent. */
 export function addPoints(pts: number, text: string, kind: LedgerKind, key?: string) {
-  const a = state.currentUser;
+  const a = getState().currentUser;
   if (!a || !pts) return 0;
   if (key && ledger(a).some((e) => e.key === key)) return 0;
   updateAccount((acc) => {
@@ -267,7 +263,7 @@ export function removeCard(id: string) {
 
 /* ------------------------------------------------------------- search */
 
-export function currentLegParams(s: AppState = state) {
+export function currentLegParams(s: AppState = getState()) {
   return s.bookingLeg === 'out'
     ? { o: s.origin, d: s.destination, date: s.departDate }
     : { o: s.destination, d: s.origin, date: s.returnDate };
@@ -276,7 +272,8 @@ export function currentLegParams(s: AppState = state) {
 export function loadLegResults() {
   const p = currentLegParams();
   const flights = generateFlights(p.o, p.d, p.date);
-  const min = state.bookingLeg === 'out' ? todayIso() : state.departDate || todayIso();
+  const s = getState();
+  const min = s.bookingLeg === 'out' ? todayIso() : s.departDate || todayIso();
   const dateChips = [-1, 0, 1].map((off) => {
     const iso = addDaysIso(p.date, off);
     if (iso < min) return { iso, price: null };

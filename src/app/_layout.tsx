@@ -8,12 +8,15 @@ import {
 } from '@expo-google-fonts/poppins';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import '@/global.css';
 import { ConfirmModal, PageLoader, Toast } from '@/components/ui';
 import { BrandProvider, brands, useLayout } from '@/design-system';
+import { hydrateStorage } from '@/state/storage';
+import { ACCOUNT_KEY, TRAVELER_KEY } from '@/state/store';
 
 const colors = brands.guxoFlights.colors;
 
@@ -38,7 +41,12 @@ function AppColumn({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const [loaded] = useFonts({ Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold, Poppins_800ExtraBold });
-  if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.primary }} />;
+  // Phones: read what's saved on the device before any screen asks for it.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    hydrateStorage([ACCOUNT_KEY, TRAVELER_KEY]).finally(() => setHydrated(true));
+  }, []);
+  if (!loaded || !hydrated) return <View style={{ flex: 1, backgroundColor: colors.primary }} />;
   return (
     <KeyboardProvider>
     <BrandProvider brand="guxoFlights">
