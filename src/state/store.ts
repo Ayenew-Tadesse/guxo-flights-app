@@ -3,20 +3,11 @@
  * object. Screens read it with `useApp()` and change it with the actions
  * below. The account (with points, cards and linked apps) and the saved
  * traveler are persisted; trips live for the session, as in the prototype.
+ * The booking in progress has its own store: `./booking`.
  */
 import { create } from 'zustand';
 
-import {
-  addDaysIso,
-  airport,
-  cheapestPriceFor,
-  generateFlights,
-  todayIso,
-  uid,
-  type CardBrand,
-  type FareId,
-  type Flight,
-} from '@/data/flights';
+import { airport, uid, type CardBrand, type FareId, type Flight } from '@/data/flights';
 import { loadJson, saveJson } from './storage';
 
 export type LedgerKind = 'earn' | 'bonus' | 'redeem' | 'refund' | 'reverse';
@@ -75,23 +66,6 @@ export type Trip = {
 
 export type AppState = {
   currentUser: Account | null;
-  origin: string;
-  destination: string;
-  departDate: string;
-  returnDate: string;
-  tripType: 'one' | 'round';
-  passengers: number;
-  bookingLeg: 'out' | 'return';
-  flights: Flight[];
-  /** The results page's date strip: the day before, the day, the day after. */
-  dateChips: { iso: string; price: number | null }[];
-  outFlight: Flight | null;
-  returnFlight: Flight | null;
-  fareTier: FareId | null;
-  seatsOut: string[];
-  seatsReturn: string[];
-  names: string[];
-  paxEmail: string;
   trips: Trip[];
   lastTripId: string | null;
   readNotifs: Record<string, boolean>;
@@ -105,22 +79,6 @@ export const TRAVELER_KEY = 'hidgo_traveler';
 
 const initialState: AppState = {
   currentUser: null,
-  origin: 'ADD',
-  destination: 'MQX',
-  departDate: todayIso(),
-  returnDate: '',
-  tripType: 'one',
-  passengers: 1,
-  bookingLeg: 'out',
-  flights: [],
-  dateChips: [],
-  outFlight: null,
-  returnFlight: null,
-  fareTier: null,
-  seatsOut: [],
-  seatsReturn: [],
-  names: [],
-  paxEmail: '',
   trips: [],
   lastTripId: null,
   readNotifs: {},
@@ -261,44 +219,7 @@ export function removeCard(id: string) {
   });
 }
 
-/* ------------------------------------------------------------- search */
-
-export function currentLegParams(s: AppState = getState()) {
-  return s.bookingLeg === 'out'
-    ? { o: s.origin, d: s.destination, date: s.departDate }
-    : { o: s.destination, d: s.origin, date: s.returnDate };
-}
-
-export function loadLegResults() {
-  const p = currentLegParams();
-  const flights = generateFlights(p.o, p.d, p.date);
-  const s = getState();
-  const min = s.bookingLeg === 'out' ? todayIso() : s.departDate || todayIso();
-  const dateChips = [-1, 0, 1].map((off) => {
-    const iso = addDaysIso(p.date, off);
-    if (iso < min) return { iso, price: null };
-    return { iso, price: off === 0 ? Math.min(...flights.map((f) => f.price)) : cheapestPriceFor(p.o, p.d, iso) };
-  });
-  setState({ flights, dateChips });
-}
-
-export function startSearch(o: string, d: string, date: string, pax: number, tripType: 'one' | 'round', returnDate: string | null) {
-  setState({
-    origin: o,
-    destination: d,
-    departDate: date,
-    passengers: pax,
-    tripType,
-    returnDate: returnDate ?? '',
-    bookingLeg: 'out',
-    outFlight: null,
-    returnFlight: null,
-    seatsOut: [],
-    seatsReturn: [],
-    fareTier: null,
-  });
-  loadLegResults();
-}
+/* -------------------------------------------------------------- trips */
 
 export const tripRouteText = (t: Trip) => {
   const out = t.legs[0];

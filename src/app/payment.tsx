@@ -1,10 +1,11 @@
-import { Redirect, router } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { CheckRow, Box, PmBadge, Selectable } from '@/components/ui';
 import { Button, Field, Icon, Input, Inset, InsetRow, Screen, SecTitle, T, TopBar, mix, useColors, type IconName } from '@/design-system';
 import { AIRLINE, BRAND_LABEL, FARES, cardBrand, fmtPrice, fmtTime, formatCardNumber, formatExpiry, newPnr, uid } from '@/data/flights';
+import { bookingValid, clearDraft, getBooking, setStep, useBooking } from '@/state/booking';
 import { goBack, withLoader } from '@/state/nav';
 import {
   MIN_REDEEM,
@@ -32,6 +33,10 @@ const TILES: { type: PayType; label: string; icon: IconName }[] = [
 export default function Payment() {
   const c = useColors();
   const s = useApp();
+  const b = useBooking();
+  // Once paid, the draft is cleared: show nothing while the confirmation opens.
+  const [paid, setPaid] = useState(false);
+  useFocusEffect(useCallback(() => setStep('payment'), []));
   const [type, setType] = useState<PayType | null>(null);
   const cards = savedCards(s.currentUser);
   const defaultCard = cards.find((x) => x.isDefault) ?? cards[0];
@@ -47,11 +52,14 @@ export default function Payment() {
   const [bankRef] = useState(() => 'BK-' + uid().toUpperCase());
   const [usePoints, setUsePoints] = useState(false);
 
-  const fare = FARES.find((f) => f.id === s.fareTier);
-  if (!s.outFlight || !fare) return <Redirect href="/home" />;
-  const isRound = s.tripType === 'round';
-  const legSum = s.outFlight.price + (isRound && s.returnFlight ? s.returnFlight.price : 0);
-  const base = (legSum + fare.add * (isRound ? 2 : 1)) * s.passengers;
+  const fare = FARES.find((f) => f.id === b.fareTier);
+  if (paid) return null;
+  if (!b.outFlight || !fare) return <Redirect href="/home" />;
+  // Opened from a saved draft that isn't finished: back to fare & seats.
+  if (!bookingValid(b)) return <Redirect href="/fare" />;
+  const isRound = b.tripType === 'round';
+  const legSum = b.outFlight.price + (isRound && b.returnFlight ? b.returnFlight.price : 0);
+  const base = (legSum + fare.add * (isRound ? 2 : 1)) * b.passengers;
   const tax = Math.round(base * 0.1);
   const gross = base + tax;
   const bal = pointsBalance(s.currentUser);
@@ -68,9 +76,10 @@ export default function Payment() {
 
   function pay() {
     const st = getState();
+    const bk = getBooking();
     const pnr = newPnr();
-    const legs = [legFromFlight(st.outFlight!, st.origin, st.destination, isRound ? 'Outbound' : null, st.seatsOut)];
-    if (isRound && st.returnFlight) legs.push(legFromFlight(st.returnFlight, st.destination, st.origin, 'Return', st.seatsReturn));
+    const legs = [legFromFlight(bk.outFlight!, bk.origin, bk.destination, isRound ? 'Outbound' : null, bk.seatsOut)];
+    if (isRound && bk.returnFlight) legs.push(legFromFlight(bk.returnFlight, bk.destination, bk.origin, 'Return', bk.seatsReturn));
     let paymentKind = 'bank';
     let paymentLabel = 'Bank counter';
     let paymentSub = bankRef;
@@ -92,11 +101,11 @@ export default function Payment() {
     }
     const trip: Trip = {
       id: 'TR-' + uid(),
-      tripType: st.tripType,
+      tripType: bk.tripType,
       legs,
       fareTier: fare!.id,
       fareName: fare!.name,
-      names: st.names.map((n) => n.trim()),
+      names: bk.names.map((n) => n.trim()),
       price: total,
       pnr,
       checkedIn: false,
@@ -112,6 +121,8 @@ export default function Payment() {
     if (usePts) addPoints(-usePts, 'Used on ' + routeTxt + ' · PNR ' + pnr, 'redeem', 'redeem-' + trip.id);
     trip.pointsEarned = st.currentUser ? addPoints(pointsFor(total), 'Booked ' + routeTxt + ' · PNR ' + pnr, 'earn', 'earn-' + trip.id) : 0;
     setState((x) => ({ trips: [trip, ...x.trips], lastTripId: trip.id }));
+    setPaid(true);
+    clearDraft();
     // Like the prototype: Back from the confirmation lands on My Trips.
     withLoader(() => {
       if (router.canDismiss()) router.dismissAll();
@@ -123,17 +134,17 @@ export default function Payment() {
   return (
     <Screen top={<TopBar title="Payment" onBack={goBack} />}>
       <Inset style={{ marginVertical: 14 }}>
-        <InsetRow label={isRound ? 'Outbound' : 'Route'} value={s.origin + ' → ' + s.destination} />
-        <InsetRow label="Flight" value={AIRLINE.name + ' ' + s.outFlight.flightNo} />
-        <InsetRow label="Departs" value={fmtTime(s.outFlight.dep)} />
-        <InsetRow label="Seats" value={s.seatsOut.join(', ')} />
-        {isRound && s.returnFlight ? (
+        <InsetRow label={isRound ? 'Outbound' : 'Route'} value={b.origin + ' → ' + b.destination} />
+        <InsetRow label="Flight" value={AIRLINE.name + ' ' + b.outFlight.flightNo} />
+        <InsetRow label="Departs" value={fmtTime(b.outFlight.dep)} />
+        <InsetRow label="Seats" value={b.seatsOut.join(', ')} />
+        {isRound && b.returnFlight ? (
           <>
             <View style={{ height: 8 }} />
-            <InsetRow label="Return" value={s.destination + ' → ' + s.origin} />
-            <InsetRow label="Flight" value={AIRLINE.name + ' ' + s.returnFlight.flightNo} />
-            <InsetRow label="Departs" value={fmtTime(s.returnFlight.dep)} />
-            <InsetRow label="Seats" value={s.seatsReturn.join(', ')} />
+            <InsetRow label="Return" value={b.destination + ' → ' + b.origin} />
+            <InsetRow label="Flight" value={AIRLINE.name + ' ' + b.returnFlight.flightNo} />
+            <InsetRow label="Departs" value={fmtTime(b.returnFlight.dep)} />
+            <InsetRow label="Seats" value={b.seatsReturn.join(', ')} />
           </>
         ) : null}
       </Inset>
@@ -268,7 +279,7 @@ export default function Payment() {
       ) : null}
 
       <Inset style={{ marginTop: 16, marginBottom: 6 }}>
-        <PriceLine label={'Fare (' + fare.name + (isRound ? ', round trip' : '') + ') × ' + s.passengers} value={fmtPrice(base)} />
+        <PriceLine label={'Fare (' + fare.name + (isRound ? ', round trip' : '') + ') × ' + b.passengers} value={fmtPrice(base)} />
         <PriceLine label="Taxes & fees" value={fmtPrice(tax)} />
         {usePts ? <PriceLine label={'Guxo Points (' + fmtPts(usePts) + ')'} value={'−' + fmtPrice(usePts / 10)} good /> : null}
         <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 8, marginTop: 4 }}>
