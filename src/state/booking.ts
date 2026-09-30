@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { addDaysIso, cheapestPriceFor, generateFlights, todayIso, withSeatMap, type FareId, type Flight } from '@/data/flights';
+import { addDaysIso, airport, cheapestPriceFor, formatAirport, generateFlights, todayIso, withSeatMap, type FareId, type Flight } from '@/data/flights';
 import { persistStorage } from './storage';
 import { loadTraveler } from './store';
 
@@ -17,7 +17,17 @@ export const BOOKING_KEY = 'guxo_booking';
 export type BookingStep = 'results' | 'fare' | 'payment';
 export type TripType = 'one' | 'round';
 
+/** A search: what the booking below was searched with, and each recent search. */
+export type Search = { origin: string; destination: string; departDate: string; returnDate: string; tripType: TripType; passengers: number };
+/** The search form as you're filling it in (From / To are what's typed). */
+export type SearchFormState = { from: string; to: string; departDate: string; returnDate: string; tripType: TripType; passengers: number };
+
+export const MAX_RECENT = 3;
+export const MAX_PASSENGERS = 6;
+
 export type BookingState = {
+  form: SearchFormState;
+  recent: Search[];
   origin: string;
   destination: string;
   departDate: string;
@@ -55,7 +65,17 @@ const selection = {
   updatedAt: null,
 };
 
+/** Dates in the past move to today; a return keeps its length of stay. */
+function freshDates<T extends { departDate: string; returnDate: string; tripType: TripType }>(q: T): T {
+  const today = todayIso();
+  if (q.departDate >= today) return q;
+  const stay = q.returnDate ? Math.max(0, Math.round((Date.parse(q.returnDate) - Date.parse(q.departDate)) / 86400000)) : 7;
+  return { ...q, departDate: today, returnDate: q.tripType === 'round' ? addDaysIso(today, stay) : '' };
+}
+
 const initial: BookingState = {
+  form: { from: formatAirport(airport('ADD')), to: formatAirport(airport('MQX')), departDate: todayIso(), returnDate: '', tripType: 'one', passengers: 1 },
+  recent: [],
   origin: 'ADD',
   destination: 'MQX',
   departDate: todayIso(),
@@ -76,8 +96,9 @@ export const useBooking = create<BookingState>()(
     // Read once storage is ready (see the root layout).
     skipHydration: true,
     merge: (saved, current) => {
-      const s = { ...current, ...(saved as Partial<BookingState>) };
-      // A search or draft for a day that's passed starts fresh from today.
+      let s = { ...current, ...(saved as Partial<BookingState>) };
+      s = { ...s, form: freshDates({ ...current.form, ...s.form }), recent: Array.isArray(s.recent) ? s.recent.slice(0, MAX_RECENT) : [] };
+      // A draft for a day that's passed starts fresh from today.
       if (!s.departDate || s.departDate < todayIso()) return { ...s, ...selection, departDate: todayIso(), returnDate: '' };
       return s;
     },
@@ -110,11 +131,49 @@ export function loadLegResults() {
   set({ flights, dateChips });
 }
 
-/** Start a new booking from a search (earlier picks are cleared). */
+/** Start a new booking from a search (earlier picks are cleared); the form shows it too. */
 export function startSearch(o: string, d: string, date: string, pax: number, tripType: TripType, returnDate: string | null) {
-  set({ ...selection, origin: o, destination: d, departDate: date, passengers: pax, tripType, returnDate: returnDate ?? '', step: 'results' });
+  const ret = tripType === 'round' ? (returnDate ?? '') : '';
+  set({
+    ...selection,
+    origin: o,
+    destination: d,
+    departDate: date,
+    passengers: pax,
+    tripType,
+    returnDate: ret,
+    step: 'results',
+    form: { from: formatAirport(airport(o)), to: formatAirport(airport(d)), departDate: date, returnDate: ret, tripType, passengers: pax },
+  });
   loadLegResults();
 }
+
+/* ------------------------------------------------------ search form */
+
+/** Change the form; dates and trip type keep each other valid. */
+export function setForm(patch: Partial<SearchFormState>) {
+  set((s) => {
+    const f = { ...s.form, ...patch };
+    f.passengers = Math.min(MAX_PASSENGERS, Math.max(1, f.passengers));
+    if (f.tripType === 'one') f.returnDate = '';
+    else if (!f.returnDate || f.returnDate < f.departDate) f.returnDate = patch.tripType ? addDaysIso(f.departDate, 7) : f.departDate;
+    return { form: f };
+  });
+}
+
+export const swapForm = () => setForm({ from: getBooking().form.to, to: getBooking().form.from });
+
+/** Search, and remember it first in the recent searches (without repeats). */
+export function runSearch(q: Search) {
+  const same = (r: Search) => r.origin === q.origin && r.destination === q.destination && r.tripType === q.tripType;
+  set((s) => ({ recent: [q, ...s.recent.filter((r) => !same(r))].slice(0, MAX_RECENT) }));
+  startSearch(q.origin, q.destination, q.departDate, q.passengers, q.tripType, q.tripType === 'round' ? q.returnDate : null);
+}
+
+/** Run a recent search again (from today if its dates have passed). */
+export const rerun = (q: Search) => runSearch(freshDates(q));
+
+export const clearRecent = () => set({ recent: [] });
 
 /** Results' date strip: search the day before or after. */
 export function pickDate(iso: string) {
