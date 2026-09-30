@@ -2,6 +2,8 @@
 
 The mobile app for **Guxo Flights**, an Ethiopian domestic flight booking app. Built with [Expo](https://expo.dev) (SDK 57) and Expo Router, it is a screen-by-screen port of the [web prototype](https://github.com/Ayenew-Tadesse/Guxo-Flights): same Poppins type, gradients, hero photo, flows and responsive layout.
 
+**Try it in a browser:** https://ayenew-tadesse.github.io/guxo-flights-app/ (use *Continue as guest*). Every change on `main` is built and published there by `.github/workflows/web.yml`.
+
 ## Screens and navigation
 
 - **Splash → Sign up / Log in** — typed mm/dd/yyyy date of birth, password strength meter, *Continue as guest*
