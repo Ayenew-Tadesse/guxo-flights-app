@@ -2,9 +2,9 @@ import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type TextInput, type ViewStyle } from 'react-native';
 
 import { Button, DateInput, Field, FormError, Icon, T, shadow, useColors, useLayout } from '@/design-system';
-import { addDaysIso, airport, findAirportByInput, formatAirport, todayIso } from '@/data/flights';
+import { airport, findAirportByInput, fmtDate, todayIso } from '@/data/flights';
 import { goTo } from '@/state/nav';
-import { getBooking, startSearch } from '@/state/booking';
+import { clearRecent, rerun, runSearch, setForm, swapForm, useBooking, type Search } from '@/state/booking';
 
 import { AirportField } from './airport-field';
 
@@ -12,30 +12,16 @@ import { AirportField } from './airport-field';
 export function SearchForm({ compact, style }: { compact?: boolean; style?: StyleProp<ViewStyle> }) {
   const c = useColors();
   const { atLeast } = useLayout();
-  const init = getBooking();
-  const [tripType, setTripType] = useState<'one' | 'round'>('one');
-  const [from, setFrom] = useState(formatAirport(airport(init.origin)));
-  const [to, setTo] = useState(formatAirport(airport(init.destination)));
-  const [date, setDate] = useState(todayIso());
-  const [ret, setRet] = useState('');
-  const [pax, setPax] = useState(1);
+  // The fields live in the booking store: Home and Book share them, and
+  // they're remembered for next time.
+  const { form, recent } = useBooking();
+  const { tripType, from, to, departDate: date, returnDate: ret, passengers: pax } = form;
   const [error, setError] = useState<string | null>(null);
   const [spun, setSpun] = useState(false);
 
   const fromA = findAirportByInput(from);
   const toA = findAirportByInput(to);
   const toRef = useRef<TextInput>(null);
-
-  function chooseTrip(t: 'one' | 'round') {
-    setTripType(t);
-    if (t === 'round') setRet((r) => (r && r >= date ? r : addDaysIso(date, 7)));
-    else setRet('');
-  }
-
-  function changeDate(d: string) {
-    setDate(d);
-    if (tripType === 'round' && ret && ret < d) setRet(d);
-  }
 
   function submit() {
     const o = findAirportByInput(from);
@@ -44,20 +30,24 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
     if (o.code === d.code) return setError('Choose two different airports.');
     if (tripType === 'round' && !ret) return setError('Choose a return date.');
     setError(null);
-    setFrom(formatAirport(o));
-    setTo(formatAirport(d));
-    startSearch(o.code, d.code, date, pax, tripType, tripType === 'round' ? ret : null);
+    runSearch({ origin: o.code, destination: d.code, departDate: date, returnDate: ret, tripType, passengers: pax });
+    goTo('/results');
+  }
+
+  function again(q: Search) {
+    setError(null);
+    rerun(q);
     goTo('/results');
   }
 
   const stepper = (
     <Field label="Passengers" style={{ flex: 1 }}>
       <View style={[styles.stepper, { backgroundColor: c.surfaceAlt, borderColor: c.line }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fewer passengers" onPress={() => setPax((p) => Math.max(1, p - 1))} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fewer passengers" onPress={() => setForm({ passengers: pax - 1 })} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
           <T px={14}>−</T>
         </Pressable>
         <T>{pax}</T>
-        <Pressable accessibilityRole="button" accessibilityLabel="More passengers" onPress={() => setPax((p) => Math.min(6, p + 1))} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="More passengers" onPress={() => setForm({ passengers: pax + 1 })} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
           <T px={14}>+</T>
         </Pressable>
       </View>
@@ -86,7 +76,7 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
               key={t}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              onPress={() => chooseTrip(t)}
+              onPress={() => setForm({ tripType: t })}
               style={[styles.seg, on ? { backgroundColor: c.surface, boxShadow: '0px 1px 2px rgba(9,21,64,0.08), 0px 2px 6px rgba(9,21,64,0.06)' } : null]}>
               <T size={0.8125} weight={700} color={on ? c.primary : c.inkSoft}>
                 {t === 'one' ? 'One way' : 'Round trip'}
@@ -99,14 +89,13 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
       {/* Above the rows below it, so an open airport list covers them. */}
       <View style={{ gap: 12, position: 'relative', zIndex: 10 }}>
         {/* Picking From moves straight on to To. */}
-        <AirportField label="From" value={from} onChange={setFrom} exclude={toA?.code} onPicked={() => toRef.current?.focus()} />
-        <AirportField label="To" value={to} onChange={setTo} exclude={fromA?.code} inputRef={toRef} onPicked={() => toRef.current?.blur()} />
+        <AirportField label="From" value={from} onChange={(v) => setForm({ from: v })} exclude={toA?.code} onPicked={() => toRef.current?.focus()} />
+        <AirportField label="To" value={to} onChange={(v) => setForm({ to: v })} exclude={fromA?.code} inputRef={toRef} onPicked={() => toRef.current?.blur()} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Swap departure and destination"
           onPress={() => {
-            setFrom(to);
-            setTo(from);
+            swapForm();
             setSpun((v) => !v);
           }}
           style={[
@@ -119,11 +108,11 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Field label="Depart" style={{ flex: 1 }}>
-          <DateInput value={date} min={todayIso()} onChange={changeDate} />
+          <DateInput value={date} min={todayIso()} onChange={(d) => setForm({ departDate: d })} />
         </Field>
         {tripType === 'round' ? (
           <Field label="Return" style={{ flex: 1 }}>
-            <DateInput value={ret} min={date} onChange={setRet} />
+            <DateInput value={ret} min={date} onChange={(d) => setForm({ returnDate: d })} />
           </Field>
         ) : (
           stepper
@@ -133,8 +122,50 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
 
       <Button block label="Search flights" onPress={submit} style={{ marginTop: 8 }} />
       <FormError>{error}</FormError>
+
+      {recent.length ? (
+        <View style={{ marginTop: 6, gap: 8 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <T size={0.6875} weight={700} color={c.inkFaint} upper ls={0.06}>
+              Recent searches
+            </T>
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear recent searches" onPress={clearRecent} hitSlop={8}>
+              <T size={0.75} weight={600} color={c.primary}>
+                Clear
+              </T>
+            </Pressable>
+          </View>
+          {recent.map((q) => (
+            <Pressable
+              key={q.origin + q.destination + q.tripType}
+              accessibilityRole="button"
+              accessibilityLabel={'Search again: ' + airport(q.origin).city + ' to ' + airport(q.destination).city}
+              onPress={() => again(q)}
+              style={({ pressed }) => [styles.recent, { borderColor: c.line, backgroundColor: pressed ? c.surfaceAlt : c.surface }]}>
+              <Icon name="plane" size={15} color={c.primary} strokeWidth={2} />
+              <View style={{ flex: 1 }}>
+                <T size={0.8125} weight={700}>
+                  {airport(q.origin).city + (q.tripType === 'round' ? ' ⇄ ' : ' → ') + airport(q.destination).city}
+                </T>
+                <T size={0.6875} color={c.inkFaint}>
+                  {recentWhen(q) + ' · ' + q.passengers + ' traveller' + (q.passengers > 1 ? 's' : '')}
+                </T>
+              </View>
+              <T size={0.75} weight={700} color={c.primary}>
+                Search
+              </T>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
+}
+
+const day = (iso: string) => fmtDate(new Date(iso + 'T00:00:00'));
+function recentWhen(q: Search) {
+  if (q.departDate < todayIso()) return 'From today';
+  return day(q.departDate) + (q.tripType === 'round' && q.returnDate ? ' – ' + day(q.returnDate) : '');
 }
 
 const styles = StyleSheet.create({
@@ -142,6 +173,7 @@ const styles = StyleSheet.create({
   seg: { flex: 1, alignItems: 'center', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12 },
   paxBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  recent: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12 },
   swap: {
     position: 'absolute',
     right: 14,

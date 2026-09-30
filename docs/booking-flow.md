@@ -28,7 +28,7 @@ with nothing to go back to it opens Home.
 
 | Screen | Reads | Writes |
 | --- | --- | --- |
-| Search form (`src/components/search-form.tsx`, on Home and Book) | origin, destination | `startSearch()` in `booking.ts`: origin, destination, dates, trip type, passengers; clears earlier selections; loads results |
+| Search form (`src/components/search-form.tsx`, on Home and Book) | `form`, `recent` | `setForm()` / `swapForm()` as you edit; `runSearch()` starts the booking (clears earlier picks, loads results) and adds it to recent searches; `rerun()` repeats a recent one |
 | Results (`src/app/results.tsx`) | flights, date strip, booking leg, trip type, passengers | outbound / return flight, booking leg, depart / return date (date strip); resets fare, seats, names and email when a new flight is chosen |
 | Fare & Seats (`src/app/fare.tsx`) | chosen flights, passengers, fare, seats, names, email | fare tier, seats (outbound and return), names, email; the first traveller's name and email are also saved for next time |
 | Payment (`src/app/payment.tsx`) | everything above, the account (cards, points) | a new Trip, points, a saved card |
@@ -74,9 +74,16 @@ pressing Continue. Payment opened from an unfinished draft goes back to Fare
 
 Trips live for the session, as in the prototype.
 
+## The search form
+
+The form's fields (`form`: From and To as typed, dates, trip type,
+travellers) are in the booking store too, so Home and Book show the same
+search and it's remembered next time. Editing the form doesn't touch a
+booking in progress; pressing Search does. The last three different searches
+(`recent`) are listed under the form to run again; dates that have passed
+move to today, keeping a round trip's length. **Clear** empties the list.
+
 ## Next
 
-1. The Search form reading and writing the booking store, with the last
-   search remembered and recent searches to run again.
-2. An API client layer so Results can swap the sample flights for a live
+1. An API client layer so Results can swap the sample flights for a live
    flight API (behind a Supabase Edge Function, so no key is in the app).
