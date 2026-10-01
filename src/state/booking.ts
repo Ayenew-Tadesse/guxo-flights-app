@@ -8,7 +8,9 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { addDaysIso, airport, cheapestPriceFor, formatAirport, generateFlights, todayIso, withSeatMap, type FareId, type Flight } from '@/data/flights';
+import { friendlyMessage } from '@/api/client';
+import { searchFlights } from '@/api/flights';
+import { addDaysIso, airport, formatAirport, todayIso, withSeatMap, type FareId, type Flight } from '@/data/flights';
 import { persistStorage } from './storage';
 import { loadTraveler } from './store';
 
@@ -48,6 +50,10 @@ export type BookingState = {
   /** Where an unfinished booking stands; null when there's nothing to continue. */
   step: BookingStep | null;
   updatedAt: string | null;
+  /** The current leg's results: loading from the API, ready, or failed (not saved). */
+  loadStatus: 'idle' | 'loading' | 'ready' | 'error';
+  /** What to tell the traveller when loading failed. */
+  loadError: string | null;
 };
 
 const selection = {
@@ -63,6 +69,8 @@ const selection = {
   paxEmail: '',
   step: null,
   updatedAt: null,
+  loadStatus: 'idle' as BookingState['loadStatus'],
+  loadError: null as string | null,
 };
 
 /** Dates in the past move to today; a return keeps its length of stay. */
@@ -95,6 +103,8 @@ export const useBooking = create<BookingState>()(
     storage: createJSONStorage(() => persistStorage, { reviver: reviveDates }),
     // Read once storage is ready (see the root layout).
     skipHydration: true,
+    // Loading state is for this session only.
+    partialize: ({ loadStatus: _status, loadError: _error, ...rest }) => rest,
     merge: (saved, current) => {
       let s = { ...current, ...(saved as Partial<BookingState>) };
       s = { ...s, form: freshDates({ ...current.form, ...s.form }), recent: Array.isArray(s.recent) ? s.recent.slice(0, MAX_RECENT) : [] };
@@ -118,18 +128,26 @@ export function currentLegParams(s: BookingState = getBooking()) {
     : { o: s.destination, d: s.origin, date: s.returnDate };
 }
 
-export function loadLegResults() {
+// Each load gets a number, so an older answer arriving late is ignored.
+let loadSeq = 0;
+
+/** Load the current leg's flights through the API (shows loading, then results or a friendly error). */
+export async function loadLegResults() {
   const s = getBooking();
   const p = currentLegParams(s);
-  const flights = generateFlights(p.o, p.d, p.date);
-  const min = s.bookingLeg === 'out' ? todayIso() : s.departDate || todayIso();
-  const dateChips = [-1, 0, 1].map((off) => {
-    const iso = addDaysIso(p.date, off);
-    if (iso < min) return { iso, price: null };
-    return { iso, price: off === 0 ? Math.min(...flights.map((f) => f.price)) : cheapestPriceFor(p.o, p.d, iso) };
-  });
-  set({ flights, dateChips });
+  const seq = ++loadSeq;
+  set({ loadStatus: 'loading', loadError: null });
+  try {
+    const minDate = s.bookingLeg === 'out' ? todayIso() : s.departDate || todayIso();
+    const { flights, dateChips } = await searchFlights({ origin: p.o, destination: p.d, date: p.date, minDate });
+    if (seq === loadSeq) set({ flights, dateChips, loadStatus: 'ready' });
+  } catch (e) {
+    if (seq === loadSeq) set({ loadStatus: 'error', loadError: friendlyMessage(e) });
+  }
 }
+
+/** "Try again" after a failed load. */
+export const retryResults = () => loadLegResults();
 
 /** Start a new booking from a search (earlier picks are cleared); the form shows it too. */
 export function startSearch(o: string, d: string, date: string, pax: number, tripType: TripType, returnDate: string | null) {
@@ -145,7 +163,7 @@ export function startSearch(o: string, d: string, date: string, pax: number, tri
     step: 'results',
     form: { from: formatAirport(airport(o)), to: formatAirport(airport(d)), departDate: date, returnDate: ret, tripType, passengers: pax },
   });
-  loadLegResults();
+  void loadLegResults();
 }
 
 /* ------------------------------------------------------ search form */
@@ -180,7 +198,7 @@ export function pickDate(iso: string) {
   const s = getBooking();
   if (s.bookingLeg === 'out') set({ departDate: iso, returnDate: s.returnDate && s.returnDate < iso ? iso : s.returnDate });
   else set({ returnDate: iso });
-  loadLegResults();
+  void loadLegResults();
 }
 
 /* -------------------------------------------------------- selection */
@@ -194,7 +212,7 @@ export function chooseFlight(f: Flight): 'return' | 'fare' {
   const flight = withSeatMap(f);
   if (s.bookingLeg === 'out' && s.tripType === 'round') {
     set({ outFlight: flight, bookingLeg: 'return' });
-    loadLegResults();
+    void loadLegResults();
     return 'return';
   }
   const saved = loadTraveler();

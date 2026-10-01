@@ -28,7 +28,7 @@ with nothing to go back to it opens Home.
 
 | Screen | Reads | Writes |
 | --- | --- | --- |
-| Search form (`src/components/search-form.tsx`, on Home and Book) | `form`, `recent` | `setForm()` / `swapForm()` as you edit; `runSearch()` starts the booking (clears earlier picks, loads results) and adds it to recent searches; `rerun()` repeats a recent one |
+| Search form (`src/components/search-form.tsx`, on Home and Book) | `form`, `recent` | `setForm()` / `swapForm()` as you edit; `runSearch()` starts the booking (clears earlier picks, loads results through the API client) and adds it to recent searches; `rerun()` repeats a recent one |
 | Results (`src/app/results.tsx`) | flights, date strip, booking leg, trip type, passengers | outbound / return flight, booking leg, depart / return date (date strip); resets fare, seats, names and email when a new flight is chosen |
 | Fare & Seats (`src/app/fare.tsx`) | chosen flights, passengers, fare, seats, names, email | fare tier, seats (outbound and return), names, email; the first traveller's name and email are also saved for next time |
 | Payment (`src/app/payment.tsx`) | everything above, the account (cards, points) | a new Trip, points, a saved card |
@@ -83,7 +83,29 @@ booking in progress; pressing Search does. The last three different searches
 (`recent`) are listed under the form to run again; dates that have passed
 move to today, keeping a round trip's length. **Clear** empties the list.
 
+## The API client
+
+Network calls go through one module, `src/api/client.ts`: `request(path,
+options)` adds the base URL and headers, gives up after 10 seconds
+(AbortController), parses JSON and throws an `ApiError` whose `kind` is
+`network`, `timeout`, `http` or `parse`; `friendlyMessage(e)` is what the
+screen shows. Before each call it checks the connection (expo-network), so
+with Wi-Fi off you get "You're offline" straight away.
+
+`src/api/flights.ts` has `searchFlights(search)`, which returns a leg's
+flights and the date strip's prices. There's no backend yet: without
+`EXPO_PUBLIC_API_URL` the client answers from mock routes (`mockRoute()`),
+built on the sample flight generator and passed through JSON like a real
+response. Set `EXPO_PUBLIC_API_URL` to use a server with the same response
+shape; `EXPO_PUBLIC_API_MOCK_DELAY_MS` makes the mock slow (e.g. 12000 to see
+the timeout).
+
+The booking store loads results with `loadLegResults()` (search, date strip,
+the return leg) and keeps `loadStatus` (`loading`, `ready`, `error`) and
+`loadError` for this session only. Results shows a spinner while loading
+and a friendly message with **Try again** (`retryResults()`) when it fails.
+
 ## Next
 
-1. An API client layer so Results can swap the sample flights for a live
-   flight API (behind a Supabase Edge Function, so no key is in the app).
+1. A live flight API behind a Supabase Edge Function (so no key is in the
+   app), answering `GET /flights/search` in the shape above.
