@@ -3,10 +3,10 @@ import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { FlightCard } from '@/components/flight-card';
-import { FieldLabel, Gradient, RangeInput, Screen, SelectInput, T, TopBar, alpha, mix, useColors } from '@/design-system';
+import { EmptyState, FieldLabel, Gradient, RangeInput, Screen, SelectInput, Spinner, T, TopBar, alpha, mix, useColors } from '@/design-system';
 import { airport, fmtDate, fmtPrice, type Flight } from '@/data/flights';
 import { goBack, goTo } from '@/state/nav';
-import { chooseFlight, currentLegParams, pickDate, setStep, useBooking } from '@/state/booking';
+import { chooseFlight, currentLegParams, pickDate, retryResults, setStep, useBooking } from '@/state/booking';
 
 function select(f: Flight) {
   if (chooseFlight(f) === 'fare') goTo('/fare');
@@ -15,13 +15,34 @@ function select(f: Flight) {
 export default function Results() {
   const s = useBooking();
   useFocusEffect(useCallback(() => setStep('results'), []));
-  if (!s.flights.length) return <Redirect href="/home" />;
+  // Nothing searched (e.g. opened directly): back to the search.
+  if (s.loadStatus === 'idle' && !s.flights.length) return <Redirect href="/home" />;
   const p = currentLegParams(s);
   return (
     <Screen top={<TopBar title={p.o + ' → ' + p.d} onBack={goBack} />}>
-      {/* Remount per result set so filters reset like the prototype. */}
-      <ResultsBody key={s.flights[0].id} />
+      {s.loadStatus === 'loading' ? (
+        <Loading city={airport(p.d).city} />
+      ) : s.loadStatus === 'error' ? (
+        <EmptyState message={s.loadError ?? 'Something went wrong. Please try again.'} action="Try again" onAction={retryResults} />
+      ) : !s.flights.length ? (
+        <EmptyState message="No flights on this day. Try another date." action="Back to search" onAction={goBack} />
+      ) : (
+        /* Remount per result set so filters reset like the prototype. */
+        <ResultsBody key={s.flights[0].id} />
+      )}
     </Screen>
+  );
+}
+
+function Loading({ city }: { city: string }) {
+  const c = useColors();
+  return (
+    <View accessibilityRole="progressbar" accessibilityLabel={'Finding flights to ' + city} style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 30, gap: 14 }}>
+      <Spinner />
+      <T size={0.8438} color={c.inkFaint} align="center">
+        {'Finding flights to ' + city + '…'}
+      </T>
+    </View>
   );
 }
 
