@@ -41,13 +41,13 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
   }
 
   const stepper = (
-    <Field label="Passengers" style={{ flex: 1 }}>
+    <Field label="Passengers" style={styles.half}>
       <View style={[styles.stepper, { backgroundColor: c.surfaceAlt, borderColor: c.line }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fewer passengers" onPress={() => setForm({ passengers: pax - 1 })} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fewer passengers" onPress={() => setForm({ passengers: pax - 1 })} hitSlop={6} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
           <T px={14}>−</T>
         </Pressable>
         <T>{pax}</T>
-        <Pressable accessibilityRole="button" accessibilityLabel="More passengers" onPress={() => setForm({ passengers: pax + 1 })} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="More passengers" onPress={() => setForm({ passengers: pax + 1 })} hitSlop={6} style={[styles.paxBtn, { borderColor: c.lineStrong, backgroundColor: c.surface }]}>
           <T px={14}>+</T>
         </Pressable>
       </View>
@@ -106,12 +106,13 @@ export function SearchForm({ compact, style }: { compact?: boolean; style?: Styl
         </Pressable>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Field label="Depart" style={{ flex: 1 }}>
+      {/* Side by side, stacked on very small phones (so the date isn't cut off). */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <Field label="Depart" style={styles.half}>
           <DateInput value={date} min={todayIso()} onChange={(d) => setForm({ departDate: d })} />
         </Field>
         {tripType === 'round' ? (
-          <Field label="Return" style={{ flex: 1 }}>
+          <Field label="Return" style={styles.half}>
             <DateInput value={ret} min={date} onChange={(d) => setForm({ returnDate: d })} />
           </Field>
         ) : (
@@ -171,8 +172,10 @@ function recentWhen(q: Search) {
 const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', gap: 4, borderWidth: 1, borderRadius: 13, padding: 4, marginBottom: 4 },
   seg: { flex: 1, alignItems: 'center', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 8 },
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12 },
-  paxBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  half: { flexGrow: 1, flexBasis: 140 },
+  // 34px buttons (plus hitSlop) are easy to tap; the box keeps its height.
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 13, paddingVertical: 5, paddingHorizontal: 8 },
+  paxBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   recent: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 13, paddingVertical: 10, paddingHorizontal: 12 },
   swap: {
     position: 'absolute',

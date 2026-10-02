@@ -44,7 +44,8 @@ function SummaryStrip({ f, o, d, label }: { f: Flight; o: string; d: string; lab
 function SeatMap({ f, picked, max, onToggle }: { f: Flight; picked: string[]; max: number; onToggle: (seat: string) => void }) {
   const c = useColors();
   const { atLeast } = useLayout();
-  const size = atLeast(768) ? 32 : 28;
+  // Big enough to tap; six seats, the aisle and the row number still fit a 320px phone.
+  const size = atLeast(768) ? 38 : 34;
   const gap = atLeast(768) ? 6 : 4;
   const left = max - picked.length;
   return (
@@ -76,7 +77,7 @@ function SeatMap({ f, picked, max, onToggle }: { f: Flight; picked: string[]; ma
                     borderColor: on ? c.primary : taken ? c.line : c.lineStrong,
                     backgroundColor: on ? c.primary : taken ? c.line : c.surfaceAlt,
                   }}>
-                  <T size={0.5938} color={on ? '#fff' : taken ? c.line : c.inkFaint}>
+                  <T size={0.6562} color={on ? '#fff' : taken ? c.line : c.inkFaint}>
                     {l}
                   </T>
                 </Pressable>
