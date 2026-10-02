@@ -90,7 +90,7 @@ export function FlightCard({
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen((v) => !v)}
-        style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8, padding: 6 }}>
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2, paddingVertical: 12, paddingHorizontal: 6 }}>
         <T size={0.75} weight={700} color={c.primary}>
           {open ? 'Hide details' : 'Flight details'}
         </T>

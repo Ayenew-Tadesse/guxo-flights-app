@@ -150,7 +150,7 @@ function ResultsBody() {
             value={stops}
             onChange={setStops}
             options={[
-              { value: 'any', label: 'Any number of stops' },
+              { value: 'any', label: 'Any stops' },
               { value: 'nonstop', label: 'Nonstop only' },
               { value: 'onestop', label: '1 stop only' },
             ]}
